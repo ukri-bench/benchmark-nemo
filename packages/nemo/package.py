@@ -14,7 +14,7 @@ class Nemo(Package):
     homepage = "https://www.nemo-ocean.eu/"
     git = "https://forge.nemo-ocean.eu/nemo/nemo.git"
     version("5.0", tag="5.0-RC")
-    maintainers = ["addy419"]
+    maintainers("addy419")
 
     phases = ("configure", "build", "install")
 
