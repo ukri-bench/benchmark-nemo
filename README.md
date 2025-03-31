@@ -27,3 +27,4 @@ Running `create_runscript.sh` will create a `run_nemo.sbatch` inside the run dir
 
 NOTE: I am looking into automating this step in the near future with reframe or other alternatives.
 
+> This work was funded by the Engineering and Physical Sciences Research Council (EPSRC) as part of the Benchmarking for Exascale Computing project EP/Z53321X/1.
