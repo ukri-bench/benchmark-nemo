@@ -4,6 +4,8 @@ This repository contains the spack package to build and install NEMO (Nucleus fo
 ## Recommended steps:
 ### Copy spack configuration files
 Copy all files in spack-configs/yoursystem to .spack directory, check `environment.sh` for the location of `.spack`
+### Install spack
+Install spack v0.23.1(recommended) or older. Spack v1 changed how it manages compilers inside `compilers.yaml` which breaks current config files.
 ### Modify the environment
 Modify `environment.sh` to set paths for your spack and temp directories. It is recommended that the temporary directory must be something fast and accessible since it will be used for spack build caches. Load this file with `source environment.sh` before proceeding.
 ### Install additional utilities
