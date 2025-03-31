@@ -1,4 +1,31 @@
 packages:
+  cce:
+    externals:
+    - spec: cce@15.0.0
+      prefix: /opt/cray/pe/cce/15.0.0
+      extra_attributes:
+        compilers:
+          c: /opt/cray/pe/cce/15.0.0/bin/craycc
+          cxx: /opt/cray/pe/cce/15.0.0/bin/crayCC
+          fortran: /opt/cray/pe/cce/15.0.0/bin/crayftn
+      modules: [PrgEnv-cray, craype-x86-rome]
+  gcc:
+    externals:
+    - spec: gcc@7.5.0 languages='c,c++,fortran'
+      prefix: /usr
+      extra_attributes:
+        compilers:
+          c: /usr/bin/gcc
+          cxx: /usr/bin/g++
+          fortran: /usr/bin/gfortran
+    - spec: gcc@11.2.0 languages='c,c++,fortran'
+      prefix: /opt/cray/pe/gcc/11.2.0
+      extra_attributes:
+        compilers:
+          c: /opt/cray/pe/gcc/11.2.0/bin/gcc
+          cxx: /opt/cray/pe/gcc/11.2.0/bin/g++
+          fortran: /opt/cray/pe/gcc/11.2.0/bin/gfortran
+      modules: [PrgEnv-gnu, craype-x86-rome]
   curl:
     externals:
     - spec: curl@7.79.1+gssapi+ldap+nghttp2

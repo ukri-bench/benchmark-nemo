@@ -39,15 +39,19 @@ class Nemo(Package):
     conflicts('+xios', msg="The XIOS spack package is currently broken and cannot be used")
     conflicts('+openmp', msg="The py-psyclone package is currently broken with spackv0.23.1, change if newer versions work")
 
+    # --- Compilers ---
+    depends_on("c", type="build")
+    depends_on("fortran", type="build")
+
     # --- Dependencies ---
-    depends_on("binutils")
-    depends_on("gmake")
-    depends_on("mpi") # nemo segfaults without mpi even if we aren't using it
-    depends_on("hdf5 +shared +fortran +mpi")
-    depends_on("xios@2.5:", when="+xios")
-    depends_on("netcdf-c@4.9.0: +mpi +shared")
-    depends_on("netcdf-fortran@4.6.1: +shared")
-    depends_on("py-psyclone", when="+openmp")
+    depends_on("binutils", type="build")
+    depends_on("gmake", type="build")
+    depends_on("mpi", type="build") # nemo segfaults without mpi even if we aren't using it
+    depends_on("hdf5 +shared +fortran +mpi", type="build")
+    depends_on("xios@2.5:", type=("build","link"), when="+xios")
+    depends_on("netcdf-c@4.9.0: +mpi +shared", type=("build","link"))
+    depends_on("netcdf-fortran@4.6.1: +shared", type="build")
+    depends_on("py-psyclone", type="build", when="+openmp")
 
     # --- Patches ---
     patch("makenemo.patch")

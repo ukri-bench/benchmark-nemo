@@ -5,11 +5,12 @@ This repository contains the spack package to build and install NEMO (Nucleus fo
 ### Copy spack configuration files
 Copy all files in spack-configs/yoursystem to .spack directory, check `environment.sh` for the location of `.spack`
 ### Install spack
-Install spack v0.23.1(recommended) or older. Spack v1 changed how it manages compilers inside `compilers.yaml` which breaks current config files.
+Spack v1 (latest) has changed how it handles compilers, the changes have been reflected in `spack-configs/archer2/packages.yaml`. Please install the latest spack version to use them.
+~~Install spack v0.23.1(recommended) or older. Spack v1 changed how it manages compilers inside `compilers.yaml` which breaks current config files.~~
 ### Modify the environment
 Modify `environment.sh` to set paths for your spack and temp directories. It is recommended that the temporary directory must be something fast and accessible since it will be used for spack build caches. Load this file with `source environment.sh` before proceeding.
 ### Install additional utilities
-The `f90nml` is a small utility to edit fortran namelist files. It makes the job of editing them much easier and is extensively used in `create_runscript.sh`. This can either be install with `pip3` or as we do on archer2 with `spack install py-f90nml%gcc@11`. Remember to load it before running `create_runscript.sh` if installed via spack.
+The `f90nml` is a small utility to edit fortran namelist files. It makes the job of editing them much easier and is extensively used in `create_runscript.sh`. This can either be installed with `pip3` or as we do on archer2 with `spack install py-f90nml%gcc@11`. Remember to load it before running `create_runscript.sh` if installed via spack.
 ### Add the repo
  Spack can add external repos with `spack repo add "path"`.
 ### Install NEMO
