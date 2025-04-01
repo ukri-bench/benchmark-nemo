@@ -29,12 +29,12 @@ jobs:
     - name: Spack version number
       shell: bash
       run: spack --version
-    - name: Spack install gcc11
-      run: spack install gcc@11
+    - name: Spack install gcc
+      run: spack install gcc
     - name: Install f90nml
-      run: spack install py-f90nml%gcc@11
+      run: spack install py-f90nml%gcc
     - name: Add NEMO package repository
       run: spack repo add .
     - name: Spack install NEMO
-      run: spack install nemo%gcc@11 +mpi config=ORCA2_ICE_PISCES
+      run: spack install nemo%gcc +mpi config=ORCA2_ICE_PISCES
 
