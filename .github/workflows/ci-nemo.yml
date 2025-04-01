@@ -24,7 +24,7 @@ jobs:
         python-version: "3.10"
     - name: Install Spack
       run: |
-        git clone --depth=2 --branch=releases/v1.0.0-alpha4 https://github.com/spack/spack.git ~/spack
+        git clone --depth=2 --branch=v1.0.0-alpha.4 https://github.com/spack/spack.git ~/spack
         source ~/spack/share/spack/setup-env.sh
     # Make sure `spack` command works
     - name: Spack version number
