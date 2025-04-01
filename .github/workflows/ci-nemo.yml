@@ -40,7 +40,7 @@ jobs:
     - name: Load setup and runtime dependecies (mpirun and f90nml)
       run: eval `spack load --sh mpi py-f90nml`
     - name: Setup TMPDIR
-      run: mkdir -P nemo-tmp && export TMPDIR=$PWD/nemo-tmp
+      run: mkdir -p nemo-tmp && export TMPDIR=$PWD/nemo-tmp
     - name: Prepare run script
       run: set -x && ./create_runscript.sh
     - name: Run NEMO
