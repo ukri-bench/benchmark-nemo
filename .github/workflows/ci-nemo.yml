@@ -37,10 +37,8 @@ jobs:
       run: spack repo add .
     - name: Spack install NEMO
       run: spack install nemo%gcc +mpi config=ORCA2_ICE_PISCES
-    - name: Setup spack bash integration
-      run: . /home/runner/work/nemo/nemo/spack/share/spack/setup-env.sh
     - name: Load setup and runtime dependecies (mpirun and f90nml)
-      run: spack load mpi py-f90nml
+      run: spack load --sh mpi py-f90nml
     - name: Setup TMPDIR
       run: mkdir -P nemo-tmp && export TMPDIR=$PWD/nemo-tmp
     - name: Prepare run script
