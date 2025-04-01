@@ -37,11 +37,13 @@ jobs:
       run: spack repo add .
     - name: Spack install NEMO
       run: spack install nemo%gcc +mpi config=ORCA2_ICE_PISCES
+    - name: Change domain decomposition
+      run: sed -i 's/^IPROC=4/IPROC=2/' ./create_runscript.sh && sed -i 's/^JPROC=9/JPROC=2/' ./create_runscript.sh
     - name: Prepare run script
       run: eval `spack load --sh py-f90nml` && mkdir -p nemo-tmp && set -x && TMPDIR=$PWD/nemo-tmp ./create_runscript.sh
     - name: Run NEMO
       continue-on-error: true
-      run: eval `spack load --sh mpi` && cd ./TESTRG && mpirun -np 36 ./nemo
+      run: eval `spack load --sh mpi` && cd ./TESTRG && mpirun -np 4 ./nemo
     - name: Get error logs for nemo
       run: cat ./TESTRG/ocean.output
     - name: Get timings for nemo
