@@ -37,4 +37,8 @@ jobs:
       run: spack repo add .
     - name: Spack install NEMO
       run: spack install nemo%gcc +mpi config=ORCA2_ICE_PISCES
+    - name: Prepare run script
+      run: set -x && ./create_runscript.sh
+    - name: Run NEMO
+      run: mpirun -np 36 ./TESTRG/nemo.exe
 
