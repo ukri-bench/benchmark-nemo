@@ -1,8 +1,7 @@
 # NEMO Spack
 This repository contains the spack package to build and install NEMO (Nucleus for European Modelling of the Ocean) model.
 
-![GitHub CI]
-(https://github.com/ukri-bench/nemo/actions/workflows/ci-nemo.yml/badge.svg)
+![GitHub CI](https://github.com/ukri-bench/nemo/actions/workflows/ci-nemo.yml/badge.svg)
 
 ## Recommended steps:
 ### Copy spack configuration files
