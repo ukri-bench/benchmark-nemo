@@ -32,7 +32,7 @@ jobs:
     - name: Spack install gcc
       run: spack install gcc
     - name: Install f90nml
-      run: spack install py-f90nml%gcc
+      run: spack install py-f90nml
     - name: Add NEMO package repository
       run: spack repo add .
     - name: Spack install NEMO
