@@ -29,4 +29,10 @@ jobs:
     - name: Spack version number
       shell: bash
       run: spack --version
+    - name: Spack install gcc11
+      run: spack install gcc@11
+    - name: Install f90nml
+      run: spack install py-f90nml%gcc@11
+    - name: Add NEMO package repository
+      run: spack repo add .
 
