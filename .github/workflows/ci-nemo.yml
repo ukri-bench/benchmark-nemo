@@ -41,7 +41,9 @@ jobs:
       run: eval `spack load --sh py-f90nml` && mkdir -p nemo-tmp && set -x && TMPDIR=$PWD/nemo-tmp ./create_runscript.sh
     - name: Run NEMO
       continue-on-error: true
-      run: eval `spack load --sh mpi` && mpirun -np 36 ./TESTRG/nemo
+      run: eval `spack load --sh mpi` && cd ./TESTRG && mpirun -np 36 ./nemo
     - name: Get error logs for nemo
       run: cat ./TESTRG/ocean.output
+    - name: Get timings for nemo
+      run: cat ./TESTRG/timing.output
 
