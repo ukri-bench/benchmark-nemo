@@ -1,5 +1,6 @@
 import os
 import sys
+import textwrap
 from pathlib import Path
 from spack.package import *
 
@@ -13,7 +14,7 @@ class Nemo(Package):
 
     homepage = "https://www.nemo-ocean.eu/"
     git = "https://forge.nemo-ocean.eu/nemo/nemo.git"
-    version("5.0", tag="5.0-RC")
+    version("5.0", commit="bc25452d80459627cb1d1ee9e6a128d7932d6e1b")
     maintainers("addy419")
 
     phases = ("configure", "build", "install")
@@ -51,6 +52,7 @@ class Nemo(Package):
     depends_on("xios@2.5:", type=("build","link"), when="+xios")
     depends_on("netcdf-c@4.9.0: +mpi +shared", type=("build","link"))
     depends_on("netcdf-fortran@4.6.1: +shared", type="build")
+    depends_on("py-f90nml", type="run")
     depends_on("py-psyclone", type="build", when="+openmp")
 
     # --- Patches ---
@@ -135,32 +137,32 @@ class Nemo(Package):
                 fflags += " -h omp"
                 ldflags += " -h omp"
 
-        arch = f"""
-        %NCDFF_HOME          {nfdir}
-        %NCDFC_HOME          {ncdir}
-        %HDF5_HOME           {h5dir}
-        %XIOS_HOME           {xiosdir}
-        %PSYCLONE_HOME       {psydir}
-        
-        %NCDF_INC            -I%NCDFF_HOME/include
-        %NCDF_LIB            -L%NCDFF_HOME/lib -lnetcdff -L%NCDFC_HOME/lib -lnetcdf -L%HDF5_HOME/lib -lhdf5_hl -lhdf5 -lhdf5
-        %XIOS_INC            -I%XIOS_HOME/inc
-        %XIOS_LIB            -L%XIOS_HOME/lib -lxios -lstdc++
-        %CPP	             cpp -Dkey_nosignedzero
-        %FC                  {fcompiler}
-        %PROD_FCFLAGS        {fflags}
-        %DEBUG_FCFLAGS       
-        %FFLAGS
-        %LD                  {fcompiler}
-        %LDFLAGS             {ldflags} -Wl,-rpath=%HDF5_HOME/lib -Wl,-rpath=%NCDFF_HOME/lib -Wl,-rpath=%XIOS_HOME/lib
-        %FPPFLAGS            -P -traditional
-        %AR                  {ar}
-        %ARFLAGS             -rs
-        %MK                  {gmake}
-        %USER_INC            %XIOS_INC %NCDF_INC
-        %USER_LIB            %XIOS_LIB %NCDF_LIB
-        {arch_extra}
-        """
+        arch = textwrap.dedent(f"""
+            %NCDFF_HOME          {nfdir}
+            %NCDFC_HOME          {ncdir}
+            %HDF5_HOME           {h5dir}
+            %XIOS_HOME           {xiosdir}
+            %PSYCLONE_HOME       {psydir}
+            
+            %NCDF_INC            -I%NCDFF_HOME/include
+            %NCDF_LIB            -L%NCDFF_HOME/lib -lnetcdff -L%NCDFC_HOME/lib -lnetcdf -L%HDF5_HOME/lib -lhdf5_hl -lhdf5 -lhdf5
+            %XIOS_INC            -I%XIOS_HOME/inc
+            %XIOS_LIB            -L%XIOS_HOME/lib -lxios -lstdc++
+            %CPP	             cpp -Dkey_nosignedzero
+            %FC                  {fcompiler}
+            %PROD_FCFLAGS        {fflags}
+            %DEBUG_FCFLAGS       
+            %FFLAGS
+            %LD                  {fcompiler}
+            %LDFLAGS             {ldflags} -Wl,-rpath=%HDF5_HOME/lib -Wl,-rpath=%NCDFF_HOME/lib -Wl,-rpath=%XIOS_HOME/lib
+            %FPPFLAGS            -P -traditional
+            %AR                  {ar}
+            %ARFLAGS             -rs
+            %MK                  {gmake}
+            %USER_INC            %XIOS_INC %NCDF_INC
+            %USER_LIB            %XIOS_LIB %NCDF_LIB
+            {arch_extra}
+        """)
         
         arch_fcm = join_path(self.stage.source_path,"arch","arch-fort.fcm")
         with open(arch_fcm, 'w') as f:
@@ -235,4 +237,16 @@ class Nemo(Package):
 
 
     def install(self, spec, prefix):
+        params = []
+        params.append(join_path(self.package_dir,"create_wrapper.py"))
+        params.append("--prefix="+prefix)
+
+        if spec.satisfies("+xios"):
+            params.append("--xios")
+        if spec.satisfies("+mpi"):
+            params.append("--mpi")
+
+        python = Executable("python3")
+        python(*params)
+
         install_tree(str(self.config_path), prefix, symlinks=False)

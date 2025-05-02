@@ -11,23 +11,41 @@ Spack v1 (latest) has changed how it handles compilers, the changes have been re
 ~~Install spack v0.23.1(recommended) or older. Spack v1 changed how it manages compilers inside `compilers.yaml` which breaks current config files.~~
 ### Modify the environment
 Modify `environment.sh` to set paths for your spack and temp directories. It is recommended that the temporary directory must be something fast and accessible since it will be used for spack build caches. Load this file with `source environment.sh` before proceeding.
-### Install additional utilities
-The `f90nml` is a small utility to edit fortran namelist files. It makes the job of editing them much easier and is extensively used in `create_runscript.sh`. This can either be installed with `pip3` or as we do on archer2 with `spack install py-f90nml%gcc@11`. Remember to load it before running `create_runscript.sh` if installed via spack.
 ### Add the repo
  Spack can add external repos with `spack repo add "path"`.
 ### Install NEMO
 `spack install nemo%cce +mpi config=ORCA2_ICE_PISCES` or with a compiler of your choice.
+### Load NEMO and build your run directory
+NEMO has complex requirements for running it. A number of modifications are needed in the namelist files to create a running config. This spack package aims to provide a simple script called `nemo-wrapper`, which can be used to set all these options. The wrapper script will modify itself depending on your enabled options. Here's an example of the wrapper script with ORCA2_ICE_PISCES and mpi enabled.
+```
+$ nemo-wrapper -h
+  Usage: nemo-wrapper [OPTIONS]
+
+  Options:
+  -d, --dir path        Run directory path (default: CurrentDirectory/NEMO_RUNDIR)
+  -i, --lon num         (required) No. of NEMO MPI processes in the i (longitudinal) direction
+  -j, --lat num         (required) No. of NEMO MPI processes in the j (latitudinal) direction
+  -t, --timesteps num   No. of timesteps (default: 24)
+  -n, --namelist path   Namelist file path (default: nemo_path/EXP00/namelist_cfg)
+  --extra-paths paths   Extra paths to link in the run directory (colon separated)
+  +stats                Enable run.stat
+  +timings              Enable NEMO timings in the timing.output file (requires: gnuplot)
+  -h, --help            Show this help message and exit
+
+```
+
+To run `ORCA2_ICE_PISCES`, you will also need to add extra files. This can be done with:
+```sh
+wget -N https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz && tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+```
+You can then run:
+```sh
+nemo-wrapper -i 4 -j 9 -t 6 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+```
+
+The run directory will be created in either the current directory, or in directory provided by `-d`.
+
 ### Create SLURM script
-Some additional files are required for NEMO to run. The `create_runscript.sh` links these files to the run directory and modifies namelists for various options. Options include:
-* `IPROC` and `JPROC` to specify domain decomposition and MPI ranks.
-* `RUNLEN` to set no. of timesteps.
-* `RUN_NAME` to set the name of run directory. This will be created in your current folder.
-* `TIMING` to enable default nemo performance timers in `timing.output` in run directory.
-* `STATS` enables `run.stat` file, which can be used to verify output (correctness) for each timestep.
-* `NML_REF` the namelist file used.
-
-Running `create_runscript.sh` will create a `run_nemo.sbatch` inside the run directory. Modify this before running your config.
-
-NOTE: I am looking into automating this step in the near future with reframe or other alternatives.
+The `run_nemo.sbatch` demonstrates how to run nemo. Modify this before running your config.
 
 > This work was funded by the Engineering and Physical Sciences Research Council (EPSRC) as part of the Benchmarking for Exascale Computing project EP/Z53321X/1.

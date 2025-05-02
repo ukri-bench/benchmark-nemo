@@ -97,7 +97,6 @@ packages:
     - spec: diffutils@3.6
       prefix: /usr
   all:
-    compiler: [gcc@7.5.0, cce@15.0.0, gcc@11.2.0]
     providers:
       mpi: [cray-mpich]
     permissions:
