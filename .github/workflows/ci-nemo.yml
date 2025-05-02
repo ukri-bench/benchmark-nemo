@@ -37,15 +37,15 @@ jobs:
       run: spack repo add .
     - name: Spack install NEMO
       run: spack install nemo%gcc +mpi config=ORCA2_ICE_PISCES
-    - name: Change domain decomposition
-      run: sed -i 's/^IPROC=4/IPROC=2/' ./create_runscript.sh && sed -i 's/^JPROC=9/JPROC=2/' ./create_runscript.sh
+    - name: Get extra files for ORCA2_ICE_PISCES
+      run: wget -N https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz && tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
     - name: Prepare run script
-      run: eval `spack load --sh py-f90nml` && mkdir -p nemo-tmp && set -x && TMPDIR=$PWD/nemo-tmp ./create_runscript.sh
+      run: eval `spack load --sh nemo` && nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
     - name: Run NEMO
       continue-on-error: true
-      run: eval `spack load --sh mpi` && cd ./TESTRG && mpirun -np 4 ./nemo
+      run: eval `spack load --sh nemo` && cd ./NEMO_RUNDIR && mpirun -np 4 ./nemo
     - name: Get error logs for nemo
-      run: cat ./TESTRG/ocean.output
+      run: cat ./NEMO_RUNDIR/ocean.output
     - name: Get timings for nemo
-      run: cat ./TESTRG/timing.output
+      run: cat ./NEMO_RUNDIR/timing.output
 
