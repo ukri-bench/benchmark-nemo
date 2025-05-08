@@ -119,7 +119,7 @@ def main():
     echo RUN DIR is $RUN_DIR
     
     [ -d ${{RUN_DIR}} ] && rm -r ${{RUN_DIR}}
-    cp -asT --update=none ${{REF_DIR}} ${{RUN_DIR}}
+    cp -ansT ${{REF_DIR}} ${{RUN_DIR}}
     cp --remove-destination ${{NML}} ${{RUN_DIR}}/namelist_cfg
     {'cp --remove-destination ${REF_DIR}/iodef.xml ${RUN_DIR}/iodef.xml' if args.xios else ''}
     
