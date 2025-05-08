@@ -21,7 +21,10 @@ class Nemo(Package):
 
     # --- Variants ---
     variant('mpi', default=True, description='Enable MPI support')
-    variant('ice', default=False, description='Enable SEA-ICE')
+    variant('ice', default=False, description='''Enable SEA-ICE
+        In polar regions temperatures become cold enough for seawater to freeze and sea ice forms on the surface of the ocean. NEMO includes a sea-ice model component, known as SI³ (Sea Ice modelling Integrated Initiative), which runs along with the ocean component with a different set of equations.''')
+    variant('pisces', default=False, description='''Enable PISCES
+        PISCES is a biogeochemical model that simulates marine biological productivity and describes the biogeochemical cycles of carbon, oxygen and of the main nutrients (P, N, Si, Fe) (Aumont et al., 2015).''')
     variant('xios', default=False, description='Enable XIOS IO server support')
     variant('openmp', default=False, description='Apply OpenMP transforms to NEMO through PSyclone')
     # TODO: Add GPU support
@@ -169,32 +172,41 @@ class Nemo(Package):
             f.write(arch)
 
         if spec.satisfies("+xios"):
+            self.add_keys.append("key_iomput")
             if spec["xios"].version.satisfies("@3.0:"):
                 self.del_keys.append("key_xios")
                 self.add_keys.append("key_xios3")
+            elif spec["xios"].version.satisfies("@2.5:"):
+                self.del_keys.append("key_xios3")
+                self.add_keys.append("key_xios")
         else:
             self.del_keys.append("key_xios") 
+            self.del_keys.append("key_xios3")
             self.del_keys.append("key_iomput")
 
-        if spec.satisfies("~mpi"):
-            if spec.satisfies("@4.2:"):
-                self.add_keys.append("key_mpi_off")
-            elif spec.satisfies("@=4.0:"):
-                self.del_keys.append("key_mpp_mpi")
-        else:
+        if spec.satisfies("+mpi"):
             if spec.satisfies("@4.2:"):
                 self.del_keys.append("key_mpi_off")
             elif spec.satisfies("@=4.0:"):
                 self.add_keys.append("key_mpp_mpi")
+        else:
+            if spec.satisfies("@4.2:"):
+                self.add_keys.append("key_mpi_off")
+            elif spec.satisfies("@=4.0:"):
+                self.del_keys.append("key_mpp_mpi")
 
         # TODO:
         #if spec.satisfies("%nvhpc"):
         #    self.add_keys.append("key_nosignedzero")
         
-        if spec.satisfies("~ice"):
+        if spec.satisfies("+ice"):
+            self.add_keys.append("key_si3")
+        else:
             self.del_keys.append("key_si3")
 
-        if spec.satisfies("config=ORCA2_ICE_PISCES"):
+        if spec.satisfies("+pisces"):
+            self.add_keys.append("key_top")
+        else:
             self.del_keys.append("key_top")
 
 
