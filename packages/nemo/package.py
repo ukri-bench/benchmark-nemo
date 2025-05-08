@@ -177,14 +177,15 @@ class Nemo(Package):
             self.del_keys.append("key_iomput")
 
         if spec.satisfies("~mpi"):
-            if spec.version.satisfies("@5.0:"):
+            if spec.satisfies("@4.2:"):
                 self.add_keys.append("key_mpi_off")
-            elif spec.version.satisfies("@=4.2:"):
-                self.add_keys.append("key_mpi_off")
-            elif spec.version.satisfies("@=4.0:"):
+            elif spec.satisfies("@=4.0:"):
                 self.del_keys.append("key_mpp_mpi")
-            else:
-                self.add_keys.append("key_mpi_off")
+        else:
+            if spec.satisfies("@4.2:"):
+                self.del_keys.append("key_mpi_off")
+            elif spec.satisfies("@=4.0:"):
+                self.add_keys.append("key_mpp_mpi")
 
         # TODO:
         #if spec.satisfies("%nvhpc"):
