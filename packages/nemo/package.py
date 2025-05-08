@@ -19,29 +19,79 @@ class Nemo(Package):
 
     phases = ("configure", "build", "install")
 
+    # --- Representative configs ---
+    nmconfigs = {
+        "ORCA2_ICE_PISCES": {"ice": True, "pisces": True},
+        "BENCH": {"ice": True, "pisces": True},
+        "GOSI10p0.0_like_eORCA1": {"ice": True, "pisces": False},
+        "GOSI10p0.0_like_eORCA025": {"ice": True, "pisces": False},
+        "GOSI10p0.0_like_eORCA12": {"ice": True, "pisces": False},
+        "GENERIC": {"ice": True, "pisces": True},
+    }
+
     # --- Variants ---
-    variant('mpi', default=True, description='Enable MPI support')
-    variant('ice', default=False, description='''Enable SEA-ICE
-        In polar regions temperatures become cold enough for seawater to freeze and sea ice forms on the surface of the ocean. NEMO includes a sea-ice model component, known as SI³ (Sea Ice modelling Integrated Initiative), which runs along with the ocean component with a different set of equations.''')
-    variant('pisces', default=False, description='''Enable PISCES
-        PISCES is a biogeochemical model that simulates marine biological productivity and describes the biogeochemical cycles of carbon, oxygen and of the main nutrients (P, N, Si, Fe) (Aumont et al., 2015).''')
-    variant('xios', default=False, description='Enable XIOS IO server support')
-    variant('openmp', default=False, description='Apply OpenMP transforms to NEMO through PSyclone')
+    variant("mpi", default=True, description="Enable MPI support")
+    variant(
+        "ice",
+        default=False,
+        description="""Enable SEA-ICE
+        In polar regions temperatures become cold enough for seawater to freeze and sea ice forms on the surface of the ocean. NEMO includes a sea-ice model component, known as SI³ (Sea Ice modelling Integrated Initiative), which runs along with the ocean component with a different set of equations.""",
+    )
+    variant(
+        "pisces",
+        default=False,
+        description="""Enable PISCES
+        PISCES is a biogeochemical model that simulates marine biological productivity and describes the biogeochemical cycles of carbon, oxygen and of the main nutrients (P, N, Si, Fe) (Aumont et al., 2015).""",
+    )
+    variant("xios", default=False, description="Enable XIOS IO server support")
+    variant(
+        "openmp",
+        default=False,
+        description="Apply OpenMP transforms to NEMO through PSyclone",
+    )
     # TODO: Add GPU support
     # variant('openmp-offload', default=False, description='Apply OpenMP GPU transforms to NEMO through PSyclone')
     variant(
-        "config", default="ORCA2_ICE_PISCES",
-        values=(
-            "ORCA2_ICE_PISCES", "BENCH", "GOSI10p0.0_like_eORCA1",
-            "GOSI10p0.0_like_eORCA025", "GOSI10p0.0_like_eORCA12"
-        ),
+        "config",
+        default="ORCA2_ICE_PISCES",
+        values=(tuple(nmconfigs.keys())),
         multi=False,
-        description="Build the specified NEMO source configuration"
+        description="Build the specified NEMO source configuration",
+    )
+    variant(
+        "generic_config",
+        default="none",
+        values=str,
+        description="Specify the generic configuration to use",
     )
 
     # --- Conflicts ---
-    conflicts('+xios', msg="The XIOS spack package is currently broken and cannot be used")
-    conflicts('+openmp', msg="The py-psyclone package is currently broken with spackv0.23.1, change if newer versions work")
+    conflicts(
+        "+xios", msg="The XIOS spack package is currently broken and cannot be used"
+    )
+    conflicts(
+        "+openmp",
+        msg="The py-psyclone package is currently broken with spackv0.23.1, change if newer versions work",
+    )
+    conflicts(
+        "config=GENERIC",
+        when="generic_config=none",
+        msg="generic_config should be set when using config=GENERIC",
+    )
+
+    for key, value in nmconfigs.items():
+        if value["ice"] == False:
+            conflicts(
+                "+ice",
+                when=f"config={key}",
+                msg=f"{key} does not support SEA-ICE. Use config=GENERIC to circumvent this",
+            )
+        if value["pisces"] == False:
+            conflicts(
+                "+pisces",
+                when=f"config={key}",
+                msg=f"{key} does not support PISCES. Use config=GENERIC to circumvent this",
+            )
 
     # --- Compilers ---
     depends_on("c", type="build")
@@ -50,10 +100,11 @@ class Nemo(Package):
     # --- Dependencies ---
     depends_on("binutils", type="build")
     depends_on("gmake", type="build")
-    depends_on("mpi", type="build") # nemo segfaults without mpi even if we aren't using it
+    # nemo segfaults without mpi even if we aren't using it
+    depends_on("mpi", type="build")
     depends_on("hdf5 +shared +fortran +mpi", type="build")
-    depends_on("xios@2.5:", type=("build","link"), when="+xios")
-    depends_on("netcdf-c@4.9.0: +mpi +shared", type=("build","link"))
+    depends_on("xios@2.5:", type=("build", "link"), when="+xios")
+    depends_on("netcdf-c@4.9.0: +mpi +shared", type=("build", "link"))
     depends_on("netcdf-fortran@4.6.1: +shared", type="build")
     depends_on("py-f90nml", type="run")
     depends_on("py-psyclone", type="build", when="+openmp")
@@ -64,40 +115,49 @@ class Nemo(Package):
 
     # --- Variables ---
     config_name = "BLDCFG"
+    source_cfg = None
     source_path = None
     config_path = None
     add_keys = []
     del_keys = []
 
-
     @run_before("build")
     def set_config_paths(self):
         nemo_root = self.stage.source_path
-        config = self.spec.variants["config"].value
-        cfgs = Path(join_path(nemo_root,"cfgs",config))
-        tests = Path(join_path(nemo_root,"tests",config))
+        self.source_cfg = self.spec.variants["config"].value
+        if self.source_cfg == "GENERIC":
+            self.source_cfg = self.spec.variants["generic_config"].value
+
+        cfgs = Path(join_path(nemo_root, "cfgs", self.source_cfg))
+        tests = Path(join_path(nemo_root, "tests", self.source_cfg))
 
         if cfgs.is_dir():
             self.source_path = cfgs
         elif tests.is_dir():
             self.source_path = tests
         else:
-            raise InstallError(f"Configuration failed: Cannot find source configuration {self.spec.variants['config'].value}")
+            raise InstallError(
+                f"Configuration failed: Cannot find source configuration {self.source_cfg}"
+            )
 
         self.config_path = Path(join_path(self.source_path.parent, self.config_name))
 
-
     def setup_build_environment(self, env):
         if self.spec.satisfies("+xios"):
-            env.set("XIOS_PATH",self.spec["xios"].prefix)
+            env.set("XIOS_PATH", self.spec["xios"].prefix)
         if self.spec.satisfies("+openmp"):
-            utilspath = join_path(self.spec['py-psyclone'].prefix.share,"psyclone","examples","nemo","scripts")
-            env.prepend_path("PYTHONPATH",utilspath)
-
+            utilspath = join_path(
+                self.spec["py-psyclone"].prefix.share,
+                "psyclone",
+                "examples",
+                "nemo",
+                "scripts",
+            )
+            env.prepend_path("PYTHONPATH", utilspath)
 
     def configure(self, spec, prefix):
-        ar = join_path(spec["binutils"].prefix.bin,"ar")
-        gmake = join_path(spec["gmake"].prefix.bin,"gmake")
+        ar = join_path(spec["binutils"].prefix.bin, "ar")
+        gmake = join_path(spec["gmake"].prefix.bin, "gmake")
         fcompiler = spec["mpi"].mpifc
         h5dir = spec["hdf5"].prefix
         ncdir = spec["netcdf-c"].prefix
@@ -140,7 +200,8 @@ class Nemo(Package):
                 fflags += " -h omp"
                 ldflags += " -h omp"
 
-        arch = textwrap.dedent(f"""
+        arch = textwrap.dedent(
+            f"""
             %NCDFF_HOME          {nfdir}
             %NCDFC_HOME          {ncdir}
             %HDF5_HOME           {h5dir}
@@ -165,10 +226,11 @@ class Nemo(Package):
             %USER_INC            %XIOS_INC %NCDF_INC
             %USER_LIB            %XIOS_LIB %NCDF_LIB
             {arch_extra}
-        """)
-        
-        arch_fcm = join_path(self.stage.source_path,"arch","arch-fort.fcm")
-        with open(arch_fcm, 'w') as f:
+        """
+        )
+
+        arch_fcm = join_path(self.stage.source_path, "arch", "arch-fort.fcm")
+        with open(arch_fcm, "w") as f:
             f.write(arch)
 
         if spec.satisfies("+xios"):
@@ -180,7 +242,7 @@ class Nemo(Package):
                 self.del_keys.append("key_xios3")
                 self.add_keys.append("key_xios")
         else:
-            self.del_keys.append("key_xios") 
+            self.del_keys.append("key_xios")
             self.del_keys.append("key_xios3")
             self.del_keys.append("key_iomput")
 
@@ -196,9 +258,9 @@ class Nemo(Package):
                 self.del_keys.append("key_mpp_mpi")
 
         # TODO:
-        #if spec.satisfies("%nvhpc"):
+        # if spec.satisfies("%nvhpc"):
         #    self.add_keys.append("key_nosignedzero")
-        
+
         if spec.satisfies("+ice"):
             self.add_keys.append("key_si3")
         else:
@@ -209,7 +271,6 @@ class Nemo(Package):
         else:
             self.del_keys.append("key_top")
 
-
     def build(self, spec, prefix):
         params = []
 
@@ -219,7 +280,14 @@ class Nemo(Package):
         params.append(f"fort")
 
         if self.spec.satisfies("+openmp"):
-            trans = join_path(self.spec['py-psyclone'].prefix.share,"psyclone","examples","nemo","scripts","omp_cpu_trans.py")
+            trans = join_path(
+                self.spec["py-psyclone"].prefix.share,
+                "psyclone",
+                "examples",
+                "nemo",
+                "scripts",
+                "omp_cpu_trans.py",
+            )
             params.append("-p")
             params.append(trans)
 
@@ -227,7 +295,7 @@ class Nemo(Package):
             params.append("-r")
         elif self.config_path.parent.name == "tests":
             params.append("-a")
-        params.append(self.spec.variants["config"].value)
+        params.append(self.source_cfg)
         params.append("-n")
         params.append(self.config_name)
 
@@ -239,20 +307,19 @@ class Nemo(Package):
             params.append(" ".join(self.add_keys))
 
         with working_dir(self.stage.source_path):
-            makenemo = Executable(join_path(".","makenemo"))
+            makenemo = Executable(join_path(".", "makenemo"))
             makenemo(*params)
 
         if spec.satisfies("+xios"):
-            xios_exe = join_path(self.spec["xios"].prefix.bin,"xios_server.exe")
-            xios_run_exe = join_path(self.config_path,"EXP00","xios_server.exe")
+            xios_exe = join_path(self.spec["xios"].prefix.bin, "xios_server.exe")
+            xios_run_exe = join_path(self.config_path, "EXP00", "xios_server.exe")
             if not os.path.exists(xios_run_exe):
                 os.symlink(xios_exe, xios_run_exe)
 
-
     def install(self, spec, prefix):
         params = []
-        params.append(join_path(self.package_dir,"create_wrapper.py"))
-        params.append("--prefix="+prefix)
+        params.append(join_path(self.package_dir, "create_wrapper.py"))
+        params.append("--prefix=" + prefix)
 
         if spec.satisfies("+xios"):
             params.append("--xios")
