@@ -31,6 +31,7 @@ def main():
       --extra-paths paths   Extra paths to link in the run directory (colon separated)
       +stats                Enable run.stat
       +timings              Enable NEMO timings in the timing.output file (requires: gnuplot)
+      +icebergs             Enable icebergs
       -h, --help            Show this help message and exit
     EOF
     }}
@@ -42,6 +43,7 @@ def main():
     NML=${{REF_DIR}}/namelist_cfg
     TIMINGS=0
     STATS=0
+    ICEBERGS=0
     {'' if args.mpi else '''
     IPROC=1
     JPROC=1
@@ -83,6 +85,10 @@ def main():
           ;;
         +timings)
           TIMINGS=1
+          shift
+          ;;
+        +icebergs)
+          ICEBERGS=1
           shift
           ;;
         -h|--help)
@@ -142,6 +148,12 @@ def main():
       f90nml -g namctl -v sn_cfctl%l_runstat=true ${{RUN_DIR}}/namelist_cfg ${{RUN_DIR}}/namelist_cfg
     else
       f90nml -g namctl -v sn_cfctl%l_runstat=false ${{RUN_DIR}}/namelist_cfg ${{RUN_DIR}}/namelist_cfg
+    fi
+
+    if [[ ${{ICEBERGS}} -eq 1 ]]; then
+      f90nml -g namberg -v ln_icebergs=true ${{RUN_DIR}}/namelist_cfg ${{RUN_DIR}}/namelist_cfg
+    else
+      f90nml -g namberg -v ln_icebergs=false ${{RUN_DIR}}/namelist_cfg ${{RUN_DIR}}/namelist_cfg
     fi
     """
     
