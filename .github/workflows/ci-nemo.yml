@@ -45,7 +45,7 @@ jobs:
     # - name: Add NEMO package repository
     #   run: spack repo add .
     - name: Spack install NEMO
-      run: spack install nemo+mpi config=ORCA2_ICE_PISCES %gcc
+      run: spack install nemo +mpi config=ORCA2_ICE_PISCES %gcc
 
     - name: Get extra files for ORCA2_ICE_PISCES
       run: wget -N https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz && tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
