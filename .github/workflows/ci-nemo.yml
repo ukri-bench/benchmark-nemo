@@ -37,7 +37,7 @@ jobs:
       shell: bash
       run: |
         spack --version
-        spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git@add-nemo bench_pkgs
+        spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
 
     - name: Spack install gcc
       run: spack install gcc
