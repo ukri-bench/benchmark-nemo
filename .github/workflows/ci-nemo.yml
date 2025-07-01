@@ -21,7 +21,8 @@ jobs:
     - name: Set up Spack
       uses: spack/setup-spack@v2
       with:
-        ref: v1.0.0-alpha.4 # Spack version (examples: develop, releases/v0.23)
+        # ref: v1.0.0-alpha.4 # Spack version (examples: develop, releases/v0.23)
+        ref: develop # Spack version (examples: develop, releases/v0.23)
         buildcache: true    # Configure oci://ghcr.io/spack/github-actions-buildcache
         color: true         # Force color output (SPACK_COLOR=always)
         path: spack         # Where to clone Spack
@@ -30,16 +31,22 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install gnuplot
+
     # Make sure `spack` command works
     - name: Spack version number
       shell: bash
-      run: spack --version
+      run: |
+        spack --version
+        spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
+
     - name: Spack install gcc
       run: spack install gcc
-    - name: Add NEMO package repository
-      run: spack repo add .
+
+    # - name: Add NEMO package repository
+    #   run: spack repo add .
     - name: Spack install NEMO
       run: spack install nemo%gcc +mpi config=ORCA2_ICE_PISCES
+
     - name: Get extra files for ORCA2_ICE_PISCES
       run: wget -N https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz && tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
     - name: Prepare run script
