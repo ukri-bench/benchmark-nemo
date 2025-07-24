@@ -29,7 +29,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
@@ -40,12 +40,6 @@ jobs:
         buildcache: true    # Configure oci://ghcr.io/spack/github-actions-buildcache
         color: true         # Force color output (SPACK_COLOR=always)
         path: spack         # Where to clone Spack
-
-    # Required for timings output
-    - name: Install gnuplot
-      run: |
-        sudo apt-get -y update
-        sudo apt-get -y install gnuplot
 
     - name: Add ukri-bench Spack repository and create environment
       shell: spack-bash {0}
@@ -63,9 +57,10 @@ jobs:
       shell: spack-bash {0}
       run: |
         spack env activate .
-        spack add nemo +mpi config=ORCA2_ICE_PISCES %gcc
+        spack add nemo gmake
         spack install
 
+    # spack add nemo +mpi config=ORCA2_ICE_PISCES %gcc
     - name: Push packages and update index
       shell: spack-bash {0}
       env:
@@ -95,6 +90,13 @@ jobs:
     # - name: Get error logs for nemo
     #   run: |
     #     cat ./NEMO_RUNDIR/ocean.output
+
+    # # Required for timings output
+    # - name: Install gnuplot
+    #   run: |
+    #     sudo apt-get -y update
+    #     sudo apt-get -y install gnuplot
+
     # - name: Get timings for nemo
     #   run: |
     #     cat ./NEMO_RUNDIR/timing.output
