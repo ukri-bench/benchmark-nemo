@@ -47,9 +47,9 @@ jobs:
         spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
         wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
         spack env create . spack.yml
-        spack mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache-nemo oci://ghcr.io/ukri-bench/spack-buildcache-nemo
-        spack mirror list
-        spack config get mirrors
+        spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache-nemo oci://ghcr.io/ukri-bench/spack-buildcache-nemo
+        spack -e . mirror list
+        spack -e . config get mirrors
 
     # - name: Spack install gcc
     #   run: spack install gcc
