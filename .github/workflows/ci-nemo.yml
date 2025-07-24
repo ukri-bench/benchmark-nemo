@@ -53,7 +53,7 @@ jobs:
       - name: Install (CPU)
         shell: spack-bash {0}
         run: |
-          spack -e . install --use-buildcache=package:never,dependencies:auto nemo +mpi config=ORCA2_ICE_PISCES %gcc
+          spack -e . install --use-buildcache=package:never,dependencies:auto --add nemo +mpi config=ORCA2_ICE_PISCES %gcc
 
       - name: Push packages and update index
         shell: spack-bash {0}
