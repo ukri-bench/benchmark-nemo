@@ -18,6 +18,10 @@ on:
 permissions:
   contents: read
 
+env:
+  GITHUB_USER: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -62,31 +66,6 @@ jobs:
         spack add nemo +mpi config=ORCA2_ICE_PISCES %gcc
         spack install
 
-    - name: Get extra files for ORCA2_ICE_PISCES
-      run: |
-        wget https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
-        tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
-
-    - name: Prepare run script
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
-      # run: eval `spack load --sh nemo` && nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
-
-    - name: Run NEMO
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        cd ./NEMO_RUNDIR
-        mpirun -np 4 ./nemo
-    - name: Get error logs for nemo
-      run: |
-        cat ./NEMO_RUNDIR/ocean.output
-    - name: Get timings for nemo
-      run: |
-        cat ./NEMO_RUNDIR/timing.output
-
     - name: Push packages and update index
       shell: spack-bash {0}
       env:
@@ -94,3 +73,36 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
       if: ${{ !cancelled() }}
+
+    # - name: Get extra files for ORCA2_ICE_PISCES
+    #   run: |
+    #     wget https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
+    #     tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+
+    # - name: Prepare run script
+    #   shell: spack-bash {0}
+    #   run: |
+    #     spack env activate .
+    #     nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+    #   # run: eval `spack load --sh nemo` && nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+
+    # - name: Run NEMO
+    #   shell: spack-bash {0}
+    #   run: |
+    #     spack env activate .
+    #     cd ./NEMO_RUNDIR
+    #     mpirun -np 4 ./nemo
+    # - name: Get error logs for nemo
+    #   run: |
+    #     cat ./NEMO_RUNDIR/ocean.output
+    # - name: Get timings for nemo
+    #   run: |
+    #     cat ./NEMO_RUNDIR/timing.output
+
+    # - name: Push packages and update index
+    #   shell: spack-bash {0}
+    #   env:
+    #     GITHUB_USER: ${{ github.actor }}
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
+    #   if: ${{ !cancelled() }}
