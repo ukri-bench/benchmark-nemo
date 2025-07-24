@@ -50,12 +50,10 @@ jobs:
           spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/spack-buildcache-nemo
           spack -e . config get mirrors
 
-
       - name: Install (CPU)
         shell: spack-bash {0}
         run: |
-          spack -e . install -j 4 --use-buildcache=package:never,dependencies:auto --add gmake
-        # spack -e . install -j 4 --use-buildcache=package:never,dependencies:auto --add bench-dolfinx
+          spack -e . install --use-buildcache=package:never,dependencies:auto nemo +mpi config=ORCA2_ICE_PISCES %gcc
 
       - name: Push packages and update index
         shell: spack-bash {0}
@@ -64,6 +62,37 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
         if: ${{ !cancelled() }}
+
+      - name: Get extra files for ORCA2_ICE_PISCES
+        run: |
+          wget https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
+          tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+
+      - name: Prepare run script
+        shell: spack-bash {0}
+        run: |
+          spack env activate .
+          nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+
+      - name: Run NEMO
+        shell: spack-bash {0}
+        run: |
+          spack env activate .
+          cd ./NEMO_RUNDIR
+          mpirun -np 4 ./nemo
+      - name: Get error logs for nemo
+        run: |
+          cat ./NEMO_RUNDIR/ocean.output
+
+      # Required for timings output
+      - name: Install gnuplot
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install gnuplot
+
+      - name: Get timings for nemo
+        run: |
+          cat ./NEMO_RUNDIR/timing.output
 
 # on:
 #   # Uncomment the below 'push' to trigger on push
