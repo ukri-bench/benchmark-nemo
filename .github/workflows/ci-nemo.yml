@@ -37,9 +37,9 @@ jobs:
       uses: spack/setup-spack@v2
       with:
         ref: develop        # Spack version (examples: develop, releases/v0.23)
-        buildcache: false    # Configure oci://ghcr.io/spack/github-actions-buildcache
+        buildcache: false   # Configure oci://ghcr.io/spack/github-actions-buildcache
         color: true         # Force color output (SPACK_COLOR=always)
-        path: spack         # Where to clone Spack
+        path: spack-src     # Where to clone Spack
 
     - name: Add ukri-bench Spack repository and create environment
       shell: spack-bash {0}
@@ -47,7 +47,7 @@ jobs:
         spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
         wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
         spack env create . spack.yml
-        spack mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache-nemo oci://ghcr.io/ukri-bench/spack-buildcache-demo
+        spack mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache-nemo oci://ghcr.io/ukri-bench/spack-buildcache-nemo
         spack mirror list
         spack config get mirrors
 
