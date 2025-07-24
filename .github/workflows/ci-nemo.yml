@@ -18,44 +18,60 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+
     - name: Set up Spack
       uses: spack/setup-spack@v2
       with:
-        # ref: v1.0.0-alpha.4 # Spack version (examples: develop, releases/v0.23)
-        ref: develop # Spack version (examples: develop, releases/v0.23)
+        ref: develop        # Spack version (examples: develop, releases/v0.23)
         buildcache: true    # Configure oci://ghcr.io/spack/github-actions-buildcache
         color: true         # Force color output (SPACK_COLOR=always)
         path: spack         # Where to clone Spack
+
     # Required for timings output
     - name: Install gnuplot
       run: |
-        sudo apt-get update
-        sudo apt-get install gnuplot
+        sudo apt-get -y update
+        sudo apt-get -y install gnuplot
 
-    # Make sure `spack` command works
-    - name: Spack version number
-      shell: bash
+    - name: Add ukri-bench Spack repository and create environment
+      shell: spack-bash {0}
       run: |
-        spack --version
         spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
+        wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
+        spack env create . spack.yml
 
-    - name: Spack install gcc
-      run: spack install gcc
+    # - name: Spack install gcc
+    #   run: spack install gcc
 
     # - name: Add NEMO package repository
     #   run: spack repo add .
-    - name: Spack install NEMO
-      run: spack install nemo +mpi config=ORCA2_ICE_PISCES %gcc
+    - name: Install NEMO
+      shell: spack-bash {0}
+      run: |
+        spack env activate .
+        spack add nemo +mpi config=ORCA2_ICE_PISCES %gcc
+        spack install
 
     - name: Get extra files for ORCA2_ICE_PISCES
       run: wget -N https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz && tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+
     - name: Prepare run script
-      run: eval `spack load --sh nemo` && nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+      shell: spack-bash {0}
+      run: |
+        spack env activate .
+        nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+      # run: eval `spack load --sh nemo` && nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+
     - name: Run NEMO
       continue-on-error: true
-      run: eval `spack load --sh nemo` && cd ./NEMO_RUNDIR && mpirun -np 4 ./nemo
+      shell: spack-bash {0}
+      run: |
+        cd ./NEMO_RUNDIR
+        mpirun -np 4 ./nemo
     - name: Get error logs for nemo
-      run: cat ./NEMO_RUNDIR/ocean.output
+      run: |
+        cat ./NEMO_RUNDIR/ocean.output
     - name: Get timings for nemo
-      run: cat ./NEMO_RUNDIR/timing.output
+      run: |
+        cat ./NEMO_RUNDIR/timing.output
 
