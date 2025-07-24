@@ -47,6 +47,8 @@ jobs:
         spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
         wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
         spack env create . spack.yml
+        spack mirror add --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache-nemo oci://ghcr.io/ukri-bench/spack-buildcache-demo
+        spack mirror list
 
     # - name: Spack install gcc
     #   run: spack install gcc
@@ -66,7 +68,7 @@ jobs:
       env:
         GITHUB_USER: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
+      run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache-nemo
       if: ${{ !cancelled() }}
 
     # - name: Get extra files for ORCA2_ICE_PISCES
