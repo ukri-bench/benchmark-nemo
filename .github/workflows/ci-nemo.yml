@@ -59,7 +59,7 @@ jobs:
       shell: spack-bash {0}
       run: |
         spack env activate .
-        spack add nemo gmake
+        spack add gmake
         spack install
 
     # spack add nemo +mpi config=ORCA2_ICE_PISCES %gcc
