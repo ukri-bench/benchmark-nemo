@@ -63,8 +63,13 @@ jobs:
 
       - name: Get extra files for ORCA2_ICE_PISCES
         run: |
-          wget -q --show-progress https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
+          curl -O https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
           tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+
+      - name: Install gnuplot  # Required for timings output
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install gnuplot
 
       - name: Prepare run script
         shell: spack-bash {0}
@@ -80,15 +85,7 @@ jobs:
           mpirun -np 4 ./nemo
 
       - name: Get error logs for nemo
-        run: |
-          cat ./NEMO_RUNDIR/ocean.output
-
-
-      - name: Install gnuplot  # Required for timings output
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install gnuplot
+        run: cat ./NEMO_RUNDIR/ocean.output
 
       - name: Get timings for nemo
-        run: |
-          cat ./NEMO_RUNDIR/timing.output
+        run: cat ./NEMO_RUNDIR/timing.output
