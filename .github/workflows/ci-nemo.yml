@@ -1,61 +1,91 @@
-# Derived from https://github.com/actions/starter-workflows/blob/main/ci/python-app.yml
-# and https://github.com/ukri-excalibur/excalibur-tests/blob/main/.github/workflows/ci.yml
-# and https://github.com/marketplace/actions/setup-spack
 name: UKRI NEMO CI
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  # Uncomment the below 'push' to trigger on push
+  push:
+    branches:
+    - "**"
+  pull_request:
+    branches:
+    - main
+  merge_group:
+    branches:
+    - main
+  # schedule:
+  #   # '*' is a special character in YAML, so string must be quoted
+  #   - cron: "0 2 * * THU"
+  workflow_dispatch:
 
-permissions:
-  contents: read
+env:
+  GITHUB_USER: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Set up Spack
-      uses: spack/setup-spack@v2
-      with:
-        # ref: v1.0.0-alpha.4 # Spack version (examples: develop, releases/v0.23)
-        ref: develop # Spack version (examples: develop, releases/v0.23)
-        buildcache: true    # Configure oci://ghcr.io/spack/github-actions-buildcache
-        color: true         # Force color output (SPACK_COLOR=always)
-        path: spack         # Where to clone Spack
-    # Required for timings output
-    - name: Install gnuplot
-      run: |
-        sudo apt-get update
-        sudo apt-get install gnuplot
+      - uses: actions/checkout@v4
 
-    # Make sure `spack` command works
-    - name: Spack version number
-      shell: bash
-      run: |
-        spack --version
-        spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
+      - name: Set up Spack
+        uses: spack/setup-spack@v2
+        with:
+          ref: develop    # Spack version (examples: develop, releases/v0.23)
+          color: true     # Force color output (SPACK_COLOR=always)
+          path: spack-src # Where to clone Spack      # - name: Get Spack
 
-    - name: Spack install gcc
-      run: spack install gcc
+      - name: Get Spack config (CPU)
+        run: |
+          wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
 
-    # - name: Add NEMO package repository
-    #   run: spack repo add .
-    - name: Spack install NEMO
-      run: spack install nemo +mpi config=ORCA2_ICE_PISCES %gcc
+      - name: Add ukri-bench Spack repository and create environment
+        shell: spack-bash {0}
+        run: |
+          spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
+          spack env create . spack.yml
+          spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/spack-buildcache-nemo
+          spack -e . config get mirrors
 
-    - name: Get extra files for ORCA2_ICE_PISCES
-      run: wget -N https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz && tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
-    - name: Prepare run script
-      run: eval `spack load --sh nemo` && nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
-    - name: Run NEMO
-      continue-on-error: true
-      run: eval `spack load --sh nemo` && cd ./NEMO_RUNDIR && mpirun -np 4 ./nemo
-    - name: Get error logs for nemo
-      run: cat ./NEMO_RUNDIR/ocean.output
-    - name: Get timings for nemo
-      run: cat ./NEMO_RUNDIR/timing.output
+      - name: Install NEMO
+        shell: spack-bash {0}
+        run: |
+          spack -e . install --use-buildcache=package:never,dependencies:auto --add nemo +mpi config=ORCA2_ICE_PISCES %gcc
 
+      - name: Push packages and update index
+        shell: spack-bash {0}
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
+        if: ${{ !cancelled() }}
+
+      - name: Get extra files for ORCA2_ICE_PISCES
+        run: |
+          curl -O https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
+          tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+
+      - name: Install gnuplot  # Required for timings output
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install gnuplot
+
+      - name: Prepare run script
+        shell: spack-bash {0}
+        run: |
+          spack env activate .
+          nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+
+      - name: Run NEMO
+        shell: spack-bash {0}
+        run: |
+          spack env activate .
+          cd ./NEMO_RUNDIR
+          mpirun -np 4 ./nemo
+
+      - name: Get error logs for nemo
+        run: cat ./NEMO_RUNDIR/ocean.output
+
+      - name: Get timings for nemo
+        run: cat ./NEMO_RUNDIR/timing.output
