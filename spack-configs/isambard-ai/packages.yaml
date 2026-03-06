@@ -5,16 +5,6 @@
 packages:
   nvhpc:
     externals:
-    - spec: nvhpc@25.1+blas~lapack~mpi
-      prefix: /home/b6c/orca2.b6c/spack/opt/spack/linux-neoverse_v2/nvhpc-25.1-4xbco3ppcgzu7bzoc52hb7ov2rsukvi4/Linux_aarch64/25.1/compilers
-      extra_attributes:
-        compilers:
-          c: /home/b6c/orca2.b6c/spack/opt/spack/linux-neoverse_v2/nvhpc-25.1-4xbco3ppcgzu7bzoc52hb7ov2rsukvi4/Linux_aarch64/25.1/compilers/bin/nvc
-          cxx: /home/b6c/orca2.b6c/spack/opt/spack/linux-neoverse_v2/nvhpc-25.1-4xbco3ppcgzu7bzoc52hb7ov2rsukvi4/Linux_aarch64/25.1/compilers/bin/nvc++
-          fortran: /home/b6c/orca2.b6c/spack/opt/spack/linux-neoverse_v2/nvhpc-25.1-4xbco3ppcgzu7bzoc52hb7ov2rsukvi4/Linux_aarch64/25.1/compilers/bin/nvfortran
-        #flags:
-        #  cflags: --gcc-toolchain=/usr/bin/gcc-13
-        #  cxxflags: --gcc-toolchain=/usr/bin/gcc-13
     - spec: nvhpc@24.11
       prefix: /opt/nvidia/hpc_sdk/Linux_aarch64/24.11/compilers
       extra_attributes:
@@ -80,12 +70,13 @@ packages:
           cxxflags: -target-cpu=arm-grace
           fflags: -target-cpu=arm-grace
     - spec: cce@19.0.0
-      prefix: /opt/cray/pe/cce/19.0.0
+      prefix: /opt/cray/pe/craype/2.7.34
+      modules: [PrgEnv-cray,cuda/12.6,craype-accel-nvidia90]
       extra_attributes:
         compilers:
-          c: /opt/cray/pe/cce/19.0.0/bin/craycc
-          cxx: /opt/cray/pe/cce/19.0.0/bin/craycxx
-          fortran: /opt/cray/pe/cce/19.0.0/bin/crayftn
+          c: /opt/cray/pe/craype/2.7.34/bin/cc
+          cxx: /opt/cray/pe/craype/2.7.34/bin/CC
+          fortran: /opt/cray/pe/craype/2.7.34/bin/ftn
         # Not supported in archspec so specify here.
         flags:
           cflags: -target-cpu=arm-grace
@@ -114,6 +105,12 @@ packages:
           prepend_path:
             LD_LIBRARY_PATH: /opt/cray/libfabric/1.22.0/lib64/
     - spec: cray-mpich@8.1.32 %cce@18
+      prefix: /opt/cray/pe/mpich/8.1.32/ofi/cray/17.0
+      extra_attributes:
+        environment:
+          prepend_path:
+            LD_LIBRARY_PATH: /opt/cray/libfabric/1.22.0/lib64/
+    - spec: cray-mpich@8.1.32 %cce@19
       prefix: /opt/cray/pe/mpich/8.1.32/ofi/cray/17.0
       extra_attributes:
         environment:
