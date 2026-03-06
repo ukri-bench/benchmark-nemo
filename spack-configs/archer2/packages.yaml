@@ -3,90 +3,118 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 packages:
-  binutils:
-    buildable: false
-    externals:
-    - spec: binutils@2.38~gold~headers
-      prefix: /opt/cray/pe/cce/15.0.0/binutils/x86_64/x86_64-pc-linux-gnu
-  xz:
-    externals:
-    - spec: xz@5.2.3
-      prefix: /usr
-  libtool:
-    externals:
-    - spec: libtool@2.4.6
-      prefix: /usr
   python:
-    buildable: false
     externals:
+    - spec: python@3.10.10+bz2+crypt+ctypes+dbm+lzma+pyexpat+pythoncmd+readline+sqlite3+ssl~tkinter+uuid+zlib
+      prefix: /opt/cray/pe/python/3.10.10
+      modules: [cray-python/3.10.10]
     - spec: python@3.6.15+bz2+crypt+ctypes~dbm+lzma+pyexpat~pythoncmd+readline+sqlite3+ssl~tkinter+uuid+zlib
       prefix: /usr
-    - spec: python@2.7.18+bz2+crypt+ctypes~dbm~lzma+pyexpat+pythoncmd+readline+sqlite3+ssl~tkinter+uuid+zlib
-      prefix: /work/y07/shared/utils/core/python/miniconda2
-  hwloc:
+    buildable: false
+  pkg-config:
     externals:
-    - spec: hwloc@2.8.0
-      prefix: /usr
-  slurm:
-    externals:
-    - spec: slurm@22.05.11
-      prefix: /usr
-  perl:
-    externals:
-    - spec: perl@5.26.1~cpanm+opcode+open+shared+threads
-      prefix: /usr
-  m4:
-    externals:
-    - spec: m4@1.4.18
-      prefix: /usr
-  automake:
-    externals:
-    - spec: automake@1.15.1
-      prefix: /usr
-  autoconf:
-    externals:
-    - spec: autoconf@2.69
-      prefix: /usr
-  findutils:
-    externals:
-    - spec: findutils@4.8.0
-      prefix: /usr
-  openssl:
-    externals:
-    - spec: openssl@1.1.1l
-      prefix: /usr
-    - spec: openssl@1.1.1g
-      prefix: /work/y07/shared/utils/core/python/miniconda2
-  openssh:
-    externals:
-    - spec: openssh@8.4p1
-      prefix: /usr
-  bzip2:
-    externals:
-    - spec: bzip2@1.0.8
-      prefix: /usr
-  diffutils:
-    externals:
-    - spec: diffutils@3.6
-      prefix: /usr
-  all:
-    compiler: [gcc@7.5.0, cce@15.0.0, gcc@11.2.0]
-    providers:
-      mpi: [cray-mpich]
-    permissions:
-      write: group
-  cmake:
-    externals:
-    - spec: cmake@3.20.4
+    - spec: pkg-config@0.29.2
       prefix: /usr
   gmake:
     externals:
     - spec: gmake@4.2.1
       prefix: /usr
-  zlib:
+  cmake:
     externals:
-    - spec: zlib@1.2.11
+    - spec: cmake@3.20.4
       prefix: /usr
+  diffutils:
+    externals:
+    - spec: diffutils@3.6
+      prefix: /usr
+  bzip2:
+    externals:
+    - spec: bzip2@1.0.8
+      prefix: /usr
+  openssh:
+    externals:
+    - spec: openssh@8.4p1
+      prefix: /usr
+  openssl:
+    externals:
+    - spec: openssl@1.1.1l-fips
+      prefix: /usr
+    - spec: openssl@1.1.1g
+      prefix: /work/y07/shared/utils/core/python/miniconda2
+  findutils:
+    externals:
+    - spec: findutils@4.8.0
+      prefix: /usr
+  autoconf:
+    externals:
+    - spec: autoconf@2.69
+      prefix: /usr
+  automake:
+    externals:
+    - spec: automake@1.15.1
+      prefix: /usr
+  m4:
+    externals:
+    - spec: m4@1.4.18
+      prefix: /usr
+  perl:
+    externals:
+    - spec: perl@5.26.1~cpanm+opcode+open+shared+threads
+      prefix: /usr
+  slurm:
+    externals:
+    - spec: slurm@22.05.11
+      prefix: /usr
+  hwloc:
+    externals:
+    - spec: hwloc@2.8.0
+      prefix: /usr
+  libtool:
+    externals:
+    - spec: libtool@2.4.6
+      prefix: /usr
+  xz:
+    externals:
+    - spec: xz@5.2.3
+      prefix: /usr
+  binutils:
+    externals:
+    - spec: binutils@2.40~gold~headers % cce@16.0.1
+      prefix: /opt/cray/pe/cce/16.0.1/binutils/x86_64/x86_64-pc-linux-gnu
+    - spec: binutils@2.43.1~gold~headers % gcc@11.2.0
+      prefix: /usr
+  gcc:
+    externals:
+    - spec: gcc@11.2.0 languages:='c,c++,fortran'
+      prefix: /opt/cray/pe/gcc/11.2.0/snos
+      modules: [PrgEnv-gnu, craype-x86-rome]
+      extra_attributes:
+        compilers:
+          c: /opt/cray/pe/gcc/11.2.0/snos/bin/gcc
+          cxx: /opt/cray/pe/gcc/11.2.0/snos/bin/g++
+          fortran: /opt/cray/pe/gcc/11.2.0/snos/bin/gfortran
+    - spec: gcc@7.5.0 languages:='c,c++,fortran'
+      prefix: /usr
+      extra_attributes:
+        compilers:
+          c: /usr/bin/gcc
+          cxx: /usr/bin/g++
+          fortran: /usr/bin/gfortran
+  cce:
+    externals:
+    - spec: cce@16.0.1
+      prefix: /opt/cray/pe/cce/16.0.1
+      modules: [PrgEnv-cray, craype-x86-rome]
+      extra_attributes:
+        compilers:
+          c: /opt/cray/pe/cce/16.0.1/bin/craycc
+          cxx: /opt/cray/pe/cce/16.0.1/bin/crayCC
+          fortran: /opt/cray/pe/cce/16.0.1/bin/crayftn
+  all:
+    providers:
+      mpi: [cray-mpich]
+    permissions:
+      write: group
   libfabric:
     externals:
     - spec: libfabric@1.12.1 fabrics=sockets,verbs
@@ -99,15 +127,11 @@ packages:
     - spec: cray-pmi@6.1.12
       prefix: /opt/cray/pe/pmi/6.1.12
       modules: [cray-pmi/6.1.12]
-  pkg-config:
-    externals:
-    - spec: pkg-config@0.29.2
-      prefix: /usr
   cray-mpich:
     buildable: false
-    version: [8.1.23]
+    version: [8.1.27]
     variants: +wrappers
     externals:
-    - spec: cray-mpich@8.1.23 %cce@15.0.0
-      prefix: /opt/cray/pe/mpich/8.1.23/ofi/cray/10.0
-      modules: [libfabric, cray-mpich, cray-mpich-abi/8.1.23]
+    - spec: cray-mpich@8.1.27 %cce@16.0.1
+      prefix: /opt/cray/pe/mpich/8.1.27/ofi/crayclang/14.0
+      modules: [libfabric, cray-mpich/8.1.27]
