@@ -15,7 +15,7 @@ Spack v1 (latest) has changed how it handles compilers, the changes have been re
 ### Modify the environment
 Modify `environment.sh` to set paths for your spack and temp directories. It is recommended that the temporary directory must be something fast and accessible since it will be used for spack build caches. Load this file with `source environment.sh` before proceeding.
 ### Add the repo
- Spack can add external repos with `spack repo add "path"`.
+ `spack repo add https://github.com/ukri-bench/spack-packages`.
 ### Install NEMO
 `spack install nemo%cce +mpi config=ORCA2_ICE_PISCES` or with a compiler of your choice.
 ### Load NEMO and build your run directory
