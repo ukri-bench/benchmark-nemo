@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+
+df = pd.read_excel("scaling-results.xlsx")
+
+clusters = df["System"].unique()
+orca_res = df["Resolution"].unique()
+
+for r in orca_res:
+    plt.figure(figsize=(16, 9))
+    for c in clusters:
+        filtered_df = df[(df["System"] == c) & (df["Resolution"] == r)]
+        nodes = filtered_df["Nodes"]
+        sypd = filtered_df["SYPD"]
+        plt.plot(nodes, sypd, marker='.', label=c)
+
+
+    plt.gca().xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    plt.xlabel("Nodes")
+    plt.ylabel("Simulated Years per Day")
+    plt.title(f"NEMO BENCH {r} SCALING")
+
+    plt.legend()
+    f = r.replace(" ", "")
+    plt.savefig(f"Plots/{f}.pdf", dpi=100)
+    plt.clf()
