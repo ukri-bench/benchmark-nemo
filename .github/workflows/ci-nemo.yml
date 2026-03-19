@@ -63,7 +63,7 @@ jobs:
 
       - name: Get extra files for ORCA2_ICE_PISCES
         run: |
-          curl -O https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
+          curl -O https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
           tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
 
       - name: Install gnuplot  # Required for timings output
