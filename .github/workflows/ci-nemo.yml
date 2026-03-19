@@ -45,13 +45,15 @@ jobs:
         run: |
           spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
           spack env create . spack.yml
-          spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/spack-buildcache-nemo
-          spack -e . config get mirrors
+          #spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/spack-buildcache-nemo
+          #spack -e . config get mirrors
 
       - name: Install NEMO
         shell: spack-bash {0}
         run: |
-          spack -e . install --use-buildcache=package:never,dependencies:auto --add nemo +mpi config=ORCA2_ICE_PISCES %gcc
+          #spack -e . install --use-buildcache=package:never,dependencies:auto --add nemo +mpi config=ORCA2_ICE_PISCES %gcc
+          spack -e . install --add nemo +mpi config=ORCA2_ICE_PISCES %gcc
+
 
       - name: Push packages and update index
         shell: spack-bash {0}
