@@ -35,7 +35,12 @@ jobs:
           ref: develop    # Spack version (examples: develop, releases/v0.23)
           color: true     # Force color output (SPACK_COLOR=always)
           path: spack-src # Where to clone Spack      # - name: Get Spack
-
+      
+      - name: Check number of CPUs
+        run: |
+          echo "Number of CPUs:"
+          nproc
+          
       - name: Get Spack config (CPU)
         run: |
           wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
@@ -61,9 +66,17 @@ jobs:
         run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
         if: ${{ !cancelled() }}
 
+      - name: Cache ORCA2_ICE_v4.2.0
+        id: cache-orca
+        uses: actions/cache@v4
+        with:
+          path: ORCA2_ICE_v4.2.0
+          key: orca2-ice-v4.2.0
+
       - name: Get extra files for ORCA2_ICE_PISCES
+        if: steps.cache-orca.outputs.cache-hit != 'true'
         run: |
-          curl -O https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
+          curl -O https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
           tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
 
       - name: Install gnuplot  # Required for timings output
@@ -82,7 +95,7 @@ jobs:
         run: |
           spack env activate .
           cd ./NEMO_RUNDIR
-          mpirun -np 4 ./nemo
+          mpirun --use-hwthread-cpus -np 4 ./nemo
 
       - name: Get error logs for nemo
         run: cat ./NEMO_RUNDIR/ocean.output
