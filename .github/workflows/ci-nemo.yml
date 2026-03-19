@@ -35,7 +35,12 @@ jobs:
           ref: develop    # Spack version (examples: develop, releases/v0.23)
           color: true     # Force color output (SPACK_COLOR=always)
           path: spack-src # Where to clone Spack      # - name: Get Spack
-
+      
+      - name: Check number of CPUs
+        run: |
+          echo "Number of CPUs:"
+          nproc
+          
       - name: Get Spack config (CPU)
         run: |
           wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
