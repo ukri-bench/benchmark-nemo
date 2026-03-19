@@ -61,7 +61,15 @@ jobs:
         run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
         if: ${{ !cancelled() }}
 
+      - name: Cache ORCA2_ICE_v4.2.0
+        id: cache-orca
+        uses: actions/cache@v4
+        with:
+          path: ORCA2_ICE_v4.2.0
+          key: orca2-ice-v4.2.0
+
       - name: Get extra files for ORCA2_ICE_PISCES
+        if: steps.cache-orca.outputs.cache-hit != 'true'
         run: |
           curl -O https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
           tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
