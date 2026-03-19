@@ -3,16 +3,19 @@ This repository contains the spack package to build and install NEMO (Nucleus fo
 
 ![GitHub CI](https://github.com/ukri-bench/nemo/actions/workflows/ci-nemo.yml/badge.svg)
 
-## Recommended steps:
+## Manual compilation instructions
+Read [MANUAL_COMPILATION.md](MANUAL_COMPILATION.md)
+
+## Spack instructions:
 ### Copy spack configuration files
 Copy all files in spack-configs/yoursystem to .spack directory, check `environment.sh` for the location of `.spack`
 ### Install spack
-Spack v1 (latest) has changed how it handles compilers, the changes have been reflected in `spack-configs/archer2/packages.yaml`. Please install the latest spack version to use them.
+Spack v1 (latest) has changed how it handles compilers, the changes have been reflected in `spack-configs/isambard-ai/packages.yaml`. Please install the latest spack version to use them.
 ~~Install spack v0.23.1(recommended) or older. Spack v1 changed how it manages compilers inside `compilers.yaml` which breaks current config files.~~
 ### Modify the environment
 Modify `environment.sh` to set paths for your spack and temp directories. It is recommended that the temporary directory must be something fast and accessible since it will be used for spack build caches. Load this file with `source environment.sh` before proceeding.
 ### Add the repo
- Spack can add external repos with `spack repo add "path"`.
+ `spack repo add https://github.com/ukri-bench/spack-packages`.
 ### Install NEMO
 `spack install nemo%cce +mpi config=ORCA2_ICE_PISCES` or with a compiler of your choice.
 ### Load NEMO and build your run directory
@@ -30,6 +33,7 @@ $ nemo-wrapper -h
   --extra-paths paths   Extra paths to link in the run directory (colon separated)
   +stats                Enable run.stat
   +timings              Enable NEMO timings in the timing.output file (requires: gnuplot)
+  +icebergs             Enable icebergs
   -h, --help            Show this help message and exit
 
 ```
