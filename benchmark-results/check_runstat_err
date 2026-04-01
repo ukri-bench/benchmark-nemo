@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+import sys
+import matplotlib.pyplot as plt
+
+if len(sys.argv) != 3:
+    print("Usage: ./check_runstat_err <file1> <file2>")
+    sys.exit(1)
+
+file1 = sys.argv[1]
+file2 = sys.argv[2]
+
+
+ssh_max = []
+U_max = []
+V_max = []
+S_min = []
+S_max = []
+nemo_it = []
+
+with open(file1, "r") as f:
+    for line in f:
+        line = line.strip()   # remove newline if needed
+        parts = line.replace('D', 'E').split()
+        
+        if len(parts) == 0:
+            continue
+
+        nemo_it.append(int(parts[2]))
+        ssh_max.append(float(parts[4]))
+        U_max.append(float(parts[6]))
+        V_max.append(float(parts[8]))
+        S_min.append(float(parts[10]))
+        S_max.append(float(parts[12]))
+
+with open(file2, "r") as f:
+    it = 0
+    for line in f:
+        line = line.strip()   # remove newline if needed
+        parts = line.replace('D', 'E').split()
+
+        if len(parts) == 0:
+            continue
+
+        if nemo_it[it] != int(parts[2]):
+            print("iterations do not match between the run.stat files", file=sys.stderr)
+            exit(1)
+
+        ssh_max[it] -= float(parts[4])
+        U_max[it] -= float(parts[6])
+        V_max[it] -= float(parts[8])
+        S_min[it] -= float(parts[10])
+        S_max[it] -= float(parts[12])
+        it += 1
+
+plt.figure()
+
+plt.plot(nemo_it, ssh_max, label="ssh_max", color="green")
+plt.plot(nemo_it, U_max, label="U_max", color="red")
+plt.plot(nemo_it, V_max, label="V_max", color="purple")
+plt.plot(nemo_it, S_min, label="S_min", color="orange")
+plt.plot(nemo_it, S_max, label="S_max", color="blue")
+#plt.xticks(nemo_it)
+
+plt.xlabel("Iteration")
+plt.ylabel("Variation")
+plt.title("NEMO run.stat variation over time")
+plt.legend()
+
+plt.show()
