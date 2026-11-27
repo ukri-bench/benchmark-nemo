@@ -7,9 +7,11 @@ name: UKRI NEMO CI
 # and is never pushed. Modelled on the ukri-bench/spack-packages workflows.
 
 on:
+  # Branch pushes are covered by pull_request runs; pushing other branches as
+  # well would race them on the same build cache index
   push:
     branches:
-    - "**"
+    - main
   pull_request:
     branches:
     - main
@@ -29,7 +31,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-26.04
-    timeout-minutes: 360
+    # Below the 6 h hosted-runner limit, so that after a timeout the
+    # always() index update step still has time to run
+    timeout-minutes: 330
     permissions:
       contents: read
       packages: write  # push to the OCI build cache
@@ -43,7 +47,16 @@ jobs:
         || github.event.pull_request.head.repo.full_name == github.repository }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # NEMO Spack package. Bump deliberately: a new commit can change the
+      # dependency graph and invalidate cached binaries.
+      - name: Checkout ukri-bench Spack packages
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ukri-bench/spack-packages
+          ref: 2ad26290b2eca3de4a0f1dd5511ba743407898a6  # main, 2026-11-27
+          path: bench_pkgs
 
       # Same Spack and spack-packages versions as the ukri-bench/spack-packages
       # CI (.github/spack/versions.env there). Keep in sync.
@@ -60,14 +73,16 @@ jobs:
           echo "Number of CPUs:"
           nproc
 
+      # ukri-bench/spack-configs, pinned (main, 2026-11-27)
       - name: Get Spack config (CPU)
         run: |
-          wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
+          wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/f6ed9e058a2cae4880c3f39a0c9f9c5337b89ff1/configs/gh-actions/spack.yml
 
       - name: Add ukri-bench Spack repository and create environment
         shell: spack-bash {0}
         run: |
-          spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
+          spack repo add "${GITHUB_WORKSPACE}/bench_pkgs/spack_pkgs/spack_repo/ukri_bench"
+          spack repo list
           spack env create . spack.yml
           # Use a mirror written only by this Spack version: the index update
           # fails on entries from newer Spack versions (e.g. develop)
@@ -77,6 +92,9 @@ jobs:
       - name: Concretize
         id: concretize
         shell: spack-bash {0}
+        env: &cache-credentials
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           spack -e . add ${SPEC}
           spack -e . concretize -j "$(nproc)"
@@ -92,9 +110,7 @@ jobs:
       # built (and pushed)
       - name: Install dependencies
         shell: spack-bash {0}
-        env: &cache-credentials
-          GITHUB_USER: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        env: *cache-credentials
         run: |
           spack -e . install -j "$(nproc)" --only dependencies --use-buildcache auto
           # --only dependencies skips build-only dependencies of NEMO itself.
@@ -117,7 +133,7 @@ jobs:
 
       - name: Cache ORCA2_ICE_v4.2.0
         id: cache-orca
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ORCA2_ICE_v4.2.0
           key: orca2-ice-v4.2.0
