@@ -69,7 +69,9 @@ jobs:
         run: |
           spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
           spack env create . spack.yml
-          spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/spack-buildcache-nemo
+          # Use a mirror written only by this Spack version: the index update
+          # fails on entries from newer Spack versions (e.g. develop)
+          spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/benchmark-nemo-buildcache
           spack -e . config get mirrors
 
       - name: Concretize
