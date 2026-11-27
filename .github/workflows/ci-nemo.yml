@@ -1,7 +1,6 @@
 name: UKRI NEMO CI
 
 on:
-  # Uncomment the below 'push' to trigger on push
   push:
     branches:
     - "**"
@@ -16,31 +15,38 @@ on:
   #   - cron: "0 2 * * THU"
   workflow_dispatch:
 
-env:
-  GITHUB_USER: ${{ github.actor }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
-      packages: write
+      contents: read
+      packages: write  # push to the OCI build cache
+
+    env:
+      # Pull requests from forks get a read-only GITHUB_TOKEN; they still read
+      # from the build cache but do not push to it
+      CAN_PUSH: >-
+        ${{ github.event_name != 'pull_request'
+        || github.event.pull_request.head.repo.full_name == github.repository }}
 
     steps:
       - uses: actions/checkout@v4
 
+      # Same Spack and spack-packages versions as the ukri-bench/spack-packages
+      # CI (.github/spack/versions.env there). Keep in sync.
       - name: Set up Spack
-        uses: spack/setup-spack@v2
+        uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3.0.0
         with:
-          ref: develop    # Spack version (examples: develop, releases/v0.23)
-          color: true     # Force color output (SPACK_COLOR=always)
-          path: spack-src # Where to clone Spack      # - name: Get Spack
-      
+          spack_ref: v1.2.2
+          packages_ref: 317754c41e4e280d18ebc19db89a6115aea6cdb2
+          color: true
+          spack_path: spack-src
+
       - name: Check number of CPUs
         run: |
           echo "Number of CPUs:"
           nproc
-          
+
       - name: Get Spack config (CPU)
         run: |
           wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
@@ -55,16 +61,23 @@ jobs:
 
       - name: Install NEMO
         shell: spack-bash {0}
+        env:
+          # Credentials for the OCI build cache
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           spack -e . install --use-buildcache=package:never,dependencies:auto --add nemo +mpi config=ORCA2_ICE_PISCES %gcc
 
+      # Runs even if the install failed, so dependencies built so far are kept.
+      # A failure here does not stop the NEMO test.
       - name: Push packages and update index
+        if: ${{ !cancelled() && env.CAN_PUSH == 'true' }}
+        continue-on-error: true
         shell: spack-bash {0}
         env:
           GITHUB_USER: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
-        if: ${{ !cancelled() }}
+        run: spack -e . buildcache push --base-image ubuntu:26.04 --update-index local-buildcache
 
       - name: Cache ORCA2_ICE_v4.2.0
         id: cache-orca
@@ -97,8 +110,11 @@ jobs:
           cd ./NEMO_RUNDIR
           mpirun --use-hwthread-cpus -np 4 ./nemo
 
+      # Run even if NEMO failed, which is when the logs are most useful
       - name: Get error logs for nemo
+        if: ${{ !cancelled() && hashFiles('NEMO_RUNDIR/ocean.output') != '' }}
         run: cat ./NEMO_RUNDIR/ocean.output
 
       - name: Get timings for nemo
+        if: ${{ !cancelled() && hashFiles('NEMO_RUNDIR/timing.output') != '' }}
         run: cat ./NEMO_RUNDIR/timing.output
