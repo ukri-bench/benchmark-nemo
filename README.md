@@ -1,55 +1,75 @@
-# NEMO Spack
-This repository contains the spack package to build and install NEMO (Nucleus for European Modelling of the Ocean) model.
+# NEMO benchmark
 
-![GitHub CI](https://github.com/ukri-bench/nemo/actions/workflows/ci-nemo.yml/badge.svg)
+Scripts, configurations and results for benchmarking NEMO (Nucleus for European Modelling of the Ocean) on UK HPC systems.
 
-## Manual compilation instructions
-Read [MANUAL_COMPILATION.md](MANUAL_COMPILATION.md)
+![GitHub CI](https://github.com/ukri-bench/benchmark-nemo/actions/workflows/ci-nemo.yml/badge.svg)
 
-## Spack instructions:
-### Copy spack configuration files
-Copy all files in spack-configs/yoursystem to .spack directory, check `environment.sh` for the location of `.spack`
-### Install spack
-Spack v1 (latest) has changed how it handles compilers, the changes have been reflected in `spack-configs/isambard-ai/packages.yaml`. Please install the latest spack version to use them.
-~~Install spack v0.23.1(recommended) or older. Spack v1 changed how it manages compilers inside `compilers.yaml` which breaks current config files.~~
-### Modify the environment
-Modify `environment.sh` to set paths for your spack and temp directories. It is recommended that the temporary directory must be something fast and accessible since it will be used for spack build caches. Load this file with `source environment.sh` before proceeding.
-### Add the repo
- `spack repo add https://github.com/ukri-bench/spack-packages`.
+The NEMO Spack package (with the `nemo-wrapper` run-directory script) lives in [ukri-bench/spack-packages](https://github.com/ukri-bench/spack-packages).
+
+## Contents
+
+- `NEMO_Benchmarking_Report.pdf`: final benchmarking report.
+- `benchmark-results/`: `run.stat` outputs for ARCHER2, Isambard-3 and Isambard-AI (ORCA1, ORCA025, ORCA12 and ORCA36-like configurations), the namelists used, scaling plots and the scripts that generate them.
+- `spack-configs/`: Spack `packages.yaml` for ARCHER2, Isambard-3 and Isambard-AI.
+- `build_*.sh`, `etc/`: scripts for building NEMO and its dependencies manually. See [MANUAL_COMPILATION.md](MANUAL_COMPILATION.md).
+- `run_nemo.sbatch`: example Slurm job script.
+
+## Building with Spack
+
+### Install Spack
+
+Spack v1.x is required. CI uses Spack v1.2.2.
+
+### Add the system configuration
+
+Copy `spack-configs/<system>/packages.yaml` into your Spack user configuration directory: `$SPACK_USER_CONFIG_PATH`, or `~/.spack` by default.
+
+### Add the package repository
+
+```sh
+spack repo add https://github.com/ukri-bench/spack-packages
+```
+
 ### Install NEMO
-`spack install nemo%cce +mpi config=ORCA2_ICE_PISCES` or with a compiler of your choice.
-### Load NEMO and build your run directory
-NEMO has complex requirements for running it. A number of modifications are needed in the namelist files to create a running config. This spack package aims to provide a simple script called `nemo-wrapper`, which can be used to set all these options. The wrapper script will modify itself depending on your enabled options. Here's an example of the wrapper script with ORCA2_ICE_PISCES and mpi enabled.
-```
-$ nemo-wrapper -h
-  Usage: nemo-wrapper [OPTIONS]
 
-  Options:
-  -d, --dir path        Run directory path (default: CurrentDirectory/NEMO_RUNDIR)
-  -i, --lon num         (required) No. of NEMO MPI processes in the i (longitudinal) direction
-  -j, --lat num         (required) No. of NEMO MPI processes in the j (latitudinal) direction
-  -t, --timesteps num   No. of timesteps (default: 24)
-  -n, --namelist path   Namelist file path (default: nemo_path/EXP00/namelist_cfg)
-  --extra-paths paths   Extra paths to link in the run directory (colon separated)
-  +stats                Enable run.stat
-  +timings              Enable NEMO timings in the timing.output file (requires: gnuplot)
-  +icebergs             Enable icebergs
-  -h, --help            Show this help message and exit
-
-```
-
-To run `ORCA2_ICE_PISCES`, you will also need to add extra files. This can be done with:
 ```sh
-wget -N https://gws-access.jasmin.ac.uk/public/nemo/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz && tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+spack install nemo +mpi +ice +pisces config=ORCA2_ICE_PISCES %cce
 ```
-You can then run:
+
+Replace `%cce` with your compiler (`gcc`, `nvhpc`, `oneapi` or `cce`). The `ice` and `pisces` variants are off by default. Without them, the SI3 sea-ice and PISCES/TOP components are removed from the build, even for `config=ORCA2_ICE_PISCES`.
+
+## Running NEMO
+
+### Create a run directory
+
+NEMO needs a number of namelist changes to produce a runnable configuration. The `nemo-wrapper` script installed with the package makes these and creates a run directory. Run `nemo-wrapper -h` to see the options for your build.
+
+`ORCA2_ICE_PISCES` also needs input files: ocean and sea-ice inputs, plus PISCES inputs (about 550 MB) when built with `+pisces`:
+
 ```sh
-nemo-wrapper -i 4 -j 9 -t 6 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+wget -N https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
+tar -xzf ORCA2_ICE_v4.2.0.tar.gz
+wget -N https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/extras/ORCA2_INPUTS_PISCES_v5.0.0.tar.gz
+tar -xzf ORCA2_INPUTS_PISCES_v5.0.0.tar.gz
 ```
 
-The run directory will be created in either the current directory, or in directory provided by `-d`.
+Then create the run directory, here for a 4 × 9 MPI decomposition (36 processes) and 6 time steps:
 
-### Create SLURM script
-The `run_nemo.sbatch` demonstrates how to run nemo. Modify this before running your config.
+```sh
+nemo-wrapper -i 4 -j 9 -t 6 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0:$PWD/ORCA2_INPUTS_PISCES_v5.0.0"
+```
+
+The run directory is created at `./NEMO_RUNDIR`, or at the path given with `-d`.
+
+### Run
+
+From the run directory, launch `nemo` with the number of processes from `-i` × `-j`:
+
+```sh
+cd NEMO_RUNDIR
+mpirun -np 36 ./nemo
+```
+
+On a Slurm system, `run_nemo.sbatch` is an example job script for one 36-process node, set up for ARCHER2. Change the account, partition and QoS for your system.
 
 > This work was funded by the Engineering and Physical Sciences Research Council (EPSRC) as part of the Benchmarking for Exascale Computing project EP/Z53321X/1.
