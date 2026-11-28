@@ -132,24 +132,27 @@ jobs:
           spack -e . install -j "$(nproc)" --use-buildcache package:never,dependencies:only --fail-fast
           spack -e . find -lv
 
-      - name: Cache ORCA2_ICE_v4.2.0
+      # Ocean and sea-ice inputs, plus the PISCES inputs needed with +pisces
+      - name: Cache ORCA2_ICE_PISCES input files
         id: cache-orca
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ORCA2_ICE_v4.2.0
-          key: orca2-ice-v4.2.0
+          path: |
+            ORCA2_ICE_v4.2.0
+            ORCA2_INPUTS_PISCES_v5.0.0
+          key: orca2-ice-v4.2.0-pisces-v5.0.0
 
-      - name: Get extra files for ORCA2_ICE_PISCES
+      - name: Get input files for ORCA2_ICE_PISCES
         if: steps.cache-orca.outputs.cache-hit != 'true'
         run: |
-          curl -O https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
-          tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
+          curl -fsSL https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz | tar -xz
+          curl -fsSL https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/extras/ORCA2_INPUTS_PISCES_v5.0.0.tar.gz | tar -xz
 
       - name: Prepare run script
         shell: spack-bash {0}
         run: |
           spack env activate .
-          nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+          nemo-wrapper -i 2 -j 2 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0:$PWD/ORCA2_INPUTS_PISCES_v5.0.0"
 
       - name: Run NEMO
         shell: spack-bash {0}

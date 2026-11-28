@@ -44,17 +44,19 @@ Replace `%cce` with your compiler (`gcc`, `nvhpc`, `oneapi` or `cce`). The `ice`
 
 NEMO needs a number of namelist changes to produce a runnable configuration. The `nemo-wrapper` script installed with the package makes these and creates a run directory. Run `nemo-wrapper -h` to see the options for your build.
 
-`ORCA2_ICE_PISCES` also needs extra input files:
+`ORCA2_ICE_PISCES` also needs input files: ocean and sea-ice inputs, plus PISCES inputs (about 550 MB) when built with `+pisces`:
 
 ```sh
 wget -N https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
 tar -xzf ORCA2_ICE_v4.2.0.tar.gz
+wget -N https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/extras/ORCA2_INPUTS_PISCES_v5.0.0.tar.gz
+tar -xzf ORCA2_INPUTS_PISCES_v5.0.0.tar.gz
 ```
 
 Then create the run directory, here for a 4 × 9 MPI decomposition (36 processes) and 6 time steps:
 
 ```sh
-nemo-wrapper -i 4 -j 9 -t 6 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0"
+nemo-wrapper -i 4 -j 9 -t 6 +stats +timings --extra-paths "$PWD/ORCA2_ICE_v4.2.0:$PWD/ORCA2_INPUTS_PISCES_v5.0.0"
 ```
 
 The run directory is created at `./NEMO_RUNDIR`, or at the path given with `-d`.
