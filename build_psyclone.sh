@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-## Builds XIOS
+## Installs PSyclone
 
 
 # Get required versions and directories
@@ -17,13 +17,11 @@
 # Load the relevant environment previously created by build_spack,sh
 spack env activate ${ENVDIR}/nemo_${COMPILER}_${COMPVERP}
 
-# Check out PSyclone
+# Check out PSyclone at the revision set in etc/set_versions.sh
 rm -rf ${PSYDIR}
-git clone https://github.com/stfc/PSyclone.git ${PSYDIR}
+git clone https://github.com/stfc/PSyclone.git ${PSYDIR} || exit 1
 cd ${PSYDIR}
-
-#
-git checkout nemo_v5
+git checkout --detach ${PSYREV} || exit 1
 
 # install
 python -m pip install .

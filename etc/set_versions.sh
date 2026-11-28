@@ -48,6 +48,10 @@ export IMPIVER="2021.14.0"
 
 export PYVER="3.11"
 
+# PSyclone commit: master, 2025-06-26 (the nemo_v5 branch was merged in
+# February 2025 and no longer exists)
+export PSYREV="58b42a04c4ddfa4d21cadda89202fdba2bb9e4f9"
+
 export XIOSREV="head"
 export XIOSVER="3"
 

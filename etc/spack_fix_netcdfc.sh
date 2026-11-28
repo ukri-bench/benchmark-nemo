@@ -7,13 +7,16 @@
 #####################################################
 # Fix netcdf-c spack package
 #####################################################
-# Define the path to the file
-FILE="$SPACK_ROOT/var/spack/repos/builtin/packages/netcdf-c/package.py"
+# This file is sourced, so it uses 'return' rather than 'exit'.
+#
+# Find the package file from Spack, rather than from a fixed path: Spack v1
+# keeps the builtin packages in a separate repository
+FILE="$(spack location --package-dir netcdf-c)/package.py"
 
 # Check if the file exists
 if [[ ! -f "$FILE" ]]; then
     echo "File not found: $FILE"
-    exit 1
+    return 1
 fi
 
 # Define the line to be added with two tabs of indentation
@@ -24,6 +27,7 @@ if grep -q 'CPPFLAGS=-I{0}/include' "$FILE"; then
     echo "The fix has already been applied. No changes made."
 else
     # Use awk to insert the new line before the line containing "return config_args"
-    awk -v newline="$LINE_TO_ADD" '/        return config_args/ {print newline} {print}' "$FILE" > "${FILE}.tmp" && mv "${FILE}.tmp" "$FILE"
+    # (passed through the environment: some awks reject newlines in -v values)
+    NEWLINE="$LINE_TO_ADD" awk '/        return config_args/ {print ENVIRON["NEWLINE"]} {print}' "$FILE" > "${FILE}.tmp" && mv "${FILE}.tmp" "$FILE" || return 1
+    echo "Line added successfully."
 fi
-echo "Line added successfully."

@@ -39,7 +39,7 @@ fi
 # Create the environment. Note environment names cannot contain '.' or anything interested
 spack env activate -p --create ${ENVDIR}/nemo_${COMPILER}_${COMPVERP}
 # Apply a fix for netcdf-c
-. ./etc/spack_fix_netcdfc.sh
+. ./etc/spack_fix_netcdfc.sh || exit 1
 
 if [[ ${MPIIMPL} == "MPICH" ]]; then
 	spack add mpich@${MPICHVER}%${COMPILER}@${COMPVER} ${MPICHOPTS} ^yaksa%${COMPILER}@${COMPVER}
