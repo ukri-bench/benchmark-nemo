@@ -39,7 +39,8 @@ jobs:
       packages: write  # push to the OCI build cache
 
     env:
-      SPEC: nemo +mpi config=ORCA2_ICE_PISCES %gcc
+      # +ice +pisces: without them the package drops SI3 and TOP/PISCES
+      SPEC: nemo +mpi +ice +pisces config=ORCA2_ICE_PISCES %gcc
       # Pull requests from forks get a read-only GITHUB_TOKEN; they still read
       # from the build cache but do not push to it
       CAN_PUSH: >-
@@ -143,11 +144,6 @@ jobs:
         run: |
           curl -O https://gws-access.jasmin.ac.uk/public/nemo-vol1/sette_inputs/r4.2.0/ORCA2_ICE_v4.2.0.tar.gz
           tar -xvzf ORCA2_ICE_v4.2.0.tar.gz
-
-      - name: Install gnuplot  # Required for timings output
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install gnuplot
 
       - name: Prepare run script
         shell: spack-bash {0}
