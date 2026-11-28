@@ -1,8 +1,8 @@
 # NEMO benchmark
 
-Scripts, configurations and results for benchmarking NEMO (Nucleus for European Modelling of the Ocean) on UK HPC systems.
-
 ![GitHub CI](https://github.com/ukri-bench/benchmark-nemo/actions/workflows/ci-nemo.yml/badge.svg)
+
+Scripts, configurations and results for benchmarking NEMO (Nucleus for European Modelling of the Ocean) on UK HPC systems.
 
 The NEMO Spack package (with the `nemo-wrapper` run-directory script) lives in [ukri-bench/spack-packages](https://github.com/ukri-bench/spack-packages).
 
