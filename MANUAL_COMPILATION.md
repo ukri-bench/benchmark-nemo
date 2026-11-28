@@ -1,52 +1,78 @@
-# COMPILE NEMO MANUALLY
+# Compiling NEMO manually
 
-NEMO and its dependencies are built and installed using spack where possible.
+These scripts build NEMO, XIOS and PSyclone by hand, with Spack providing the compiler, MPI and libraries. This is an alternative to the Spack package described in the [README](README.md).
 
-The steps below are described in the order in which they need to be completed. Some need to be run once, and others will be used regularly, depending on your workflow.
+Run the steps in order, from the repository root. Steps 2–4 normally need to be run once per compiler and version. Re-run them after changing the settings in step 1.
 
-## Step 1- Setting compiler, versions etc
+## Step 1: Choose the system, compiler and versions
 
-The compiler to be used, and versions of the compiler and dependencies including PSyclone, HDF5, netCDF, BOOST are defined in `set_version.sh`. Directories to be used throughout the workflow are set in `set_directories.sh`. In general, all of steps 2 owards will need to repeated following a change to these files.
+`etc/set_versions.sh` sets:
 
-The number of cores, sockets and other resources associated with a node are returned by `platform_info.sh`. Values are presently hard-coded for the ISAMBARD-AI nodes.
+- `SYSTEM_NAME`, which selects the platform file `etc/<SYSTEM_NAME>.sh`. Platform files exist for `archer2` and `isambard-ai`.
+- The compiler (`COMPILER`, `COMPVER`, and `COMPVERP`, the version without dots, used in environment names).
+- The MPI implementation (`MPIIMPL`) and the versions of HDF5, netCDF, Boost, XIOS and NEMO.
 
-## Step 2- Building and using the spack environment
+The platform file `etc/<SYSTEM_NAME>.sh` sets:
 
-### ENSURE THAT SPACK HAS GCC AVAILABLE TO COMPILE NVHPC
+- `MAIN_DIR`, the top-level working directory. Change this to your own directory.
+- Node resources (`CORES_PER_SOCKET`, `SOCKETS_PER_NODE`, `CORES_PER_NODE`), the CPU (and GPU) architecture, and MPI build options.
 
-The script `build_spack.sh` installs the dependencies needed for building/running NEMO. In general this should only need to be run once per user for each compiler/version. This may take a long time to run if the compiler itself needs to be downloaded and installed.
+`etc/set_directories.sh` derives the other directories from `MAIN_DIR`. These include the Spack installation (`$MAIN_DIR/spack`), the scratch directory and the NEMO, XIOS and PSyclone source directories. It also sets `NEMO_EXTRA_INPUTS`, which is hard-coded and may need changing.
 
-Some spack external package configurations are available in the spack-configs (for archer2 on spack v0.23 and isambard-ai on spack v1.1.1 latest)
+## Step 2: Build the Spack environment
 
-The script will ultimately create a spack environment named `nemo_$COMPILER_$VERSION`. This can be activated using `spack env activate nemo_$COMPILER_$VERSION`, noting this is done automatically by other scripts listed below.
+Before running this step on a system where Spack will build `nvhpc`, make sure Spack has a GCC compiler available.
 
-This script does not take any arguments or have any user-editable parts.
+`build_spack.sh` installs the compiler (unless `INSTALL_COMP=0`), MPI, HDF5, netCDF, Boost and the other tools needed to build and run NEMO. This can take a long time if the compiler has to be built.
 
-## Step 3- Building XIOS
+It creates a Spack environment in the directory `$ENVDIR/nemo_${COMPILER}_${COMPVERP}`. The other scripts activate it automatically. To use it yourself, run:
 
-Building XIOS via spack doesn not work at the time of writing, so it is built from source using `build.xios.sh`. In general this should only need to be run once per user for each compiler/version.
+```sh
+spack env activate $ENVDIR/nemo_${COMPILER}_${COMPVERP}
+```
 
-NOTE- this script installs a specific revision of the XIOS trunk, defined in `set_version.sh` and `head` should be considered mutable.
+`spack-configs/<system>/packages.yaml` contains Spack external package settings for ARCHER2, Isambard-3 and Isambard-AI.
 
-This script does not take any arguments or have any user-editable parts.
+The script takes no arguments.
 
-## Step 4- Building PSyclone
-`build_psyclone.sh` clones (June 26 2025 version for now) psyclone repository and installs psyclone.
+## Step 3: Build XIOS
 
-## Step 5- Building NEMO
+XIOS can't currently be built with Spack, so `build_xios.sh` builds it from source. The XIOS major version and revision are set by `XIOSVER` and `XIOSREV` in `etc/set_versions.sh`. The default revision, `head`, changes over time; set a revision number for a reproducible build.
 
-`build_nemo.sh` clones a hard-coded repository and builds nemo itself.
+The script takes no arguments.
 
-Use argument $1 as clean to create a fresh build instead. This script also contains tranformation and config selection option at the start
+## Step 4: Install PSyclone
 
-NOTE: It is also possible to replace the MPI compiler with `psyclonefc` wrapper. Instructions on how to do this are in the [PSyclone repository] (https://github.com/stfc/PSyclone/tree/single_nemo_script/examples/nemo/scripts#set-up-environment-variables)
+`build_psyclone.sh` clones PSyclone into `$PSYDIR`, checks out the `nemo_v5` branch and installs it with `pip` into the Spack environment's Python.
 
-## Step 6- Running NEMO
+> **Note:** the `nemo_v5` branch no longer exists in the PSyclone repository. The checkout fails and the script then installs PSyclone's default branch instead.
 
-The supplied `prep_nemo_input_example.sh` does not actually run nemo but rather prepares the input for a specific hard-coded example and generates a `sbatch` script.
+## Step 5: Build NEMO
 
-This script has number of MPI processes IPROC, JPROC.
+`build_nemo.sh` clones NEMO into `$NEMO_ROOT` (version `NMVER` from `etc/set_versions.sh`) if it isn't already there, and builds it.
 
-## Scripts in etc
+The settings at the top of the script select the source configuration (`CONFIG_SRC`, default `ORCA2_ICE_PISCES`), the PSyclone transformation (`TRANS`), and whether to use MPI, XIOS and sea ice.
 
-The `etc` directory contains scripts that users should not usually need to run directly. These set versions, directories, node resources etc, and apply various fixes as part of the build process.
+Pass `clean` as the first argument for a fresh build:
+
+```sh
+./build_nemo.sh clean
+```
+
+You can also use PSyclone's `psyclonefc` compiler wrapper in place of the MPI compiler. See the [PSyclone NEMO scripts README](https://github.com/stfc/PSyclone/blob/master/examples/nemo/scripts/README.md#set-up-environment-variables).
+
+## Step 6: Prepare a run
+
+`prep_nemo_input_example.sh` prepares, but doesn't run, an example. It creates a run directory under the NEMO configuration (`cfgs/BLDCFG/TESTRG`) and downloads the ORCA2 input files if needed. It also writes a Slurm script, `run_nemo.sbatch`, into the run directory and prints the command to submit it.
+
+Edit the settings at the top of the script first. These include the MPI decomposition (`IPROC` × `JPROC`), the number of XIOS servers (`XPROC`), the run length (`RUNLEN`), OpenMP threads, and whether timing and `run.stat` output are enabled.
+
+## Scripts in `etc`
+
+The `etc` directory contains scripts that the build scripts call:
+
+- the version, directory and platform settings described in step 1;
+- `makenemo` and `sct_psyclone.sh`, which are copied into the NEMO source tree by `build_nemo.sh`;
+- `spack_fix_netcdfc.sh`, which patches the Spack `netcdf-c` package.
+
+You shouldn't normally need to run them directly.
