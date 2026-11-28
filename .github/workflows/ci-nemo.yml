@@ -1,10 +1,17 @@
 name: UKRI NEMO CI
 
+# Dependencies are taken from, and pushed to, a Spack OCI build cache on the
+# GitHub Container Registry. Each dependency built from source is pushed as
+# soon as it is installed (autopush), so work is kept even if the job later
+# fails, times out or is cancelled. NEMO itself is always built from source
+# and is never pushed. Modelled on the ukri-bench/spack-packages workflows.
+
 on:
-  # Uncomment the below 'push' to trigger on push
+  # Branch pushes are covered by pull_request runs; pushing other branches as
+  # well would race them on the same build cache index
   push:
     branches:
-    - "**"
+    - main
   pull_request:
     branches:
     - main
@@ -16,59 +23,117 @@ on:
   #   - cron: "0 2 * * THU"
   workflow_dispatch:
 
-env:
-  GITHUB_USER: ${{ github.actor }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# Cancel superseded pull request runs; other runs finish so they populate the cache
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    # Below the 6 h hosted-runner limit, so that after a timeout the
+    # always() index update step still has time to run
+    timeout-minutes: 330
     permissions:
-      packages: write
+      contents: read
+      packages: write  # push to the OCI build cache
+
+    env:
+      SPEC: nemo +mpi config=ORCA2_ICE_PISCES %gcc
+      # Pull requests from forks get a read-only GITHUB_TOKEN; they still read
+      # from the build cache but do not push to it
+      CAN_PUSH: >-
+        ${{ github.event_name != 'pull_request'
+        || github.event.pull_request.head.repo.full_name == github.repository }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Spack
-        uses: spack/setup-spack@v2
+      # NEMO Spack package. Bump deliberately: a new commit can change the
+      # dependency graph and invalidate cached binaries.
+      - name: Checkout ukri-bench Spack packages
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: develop    # Spack version (examples: develop, releases/v0.23)
-          color: true     # Force color output (SPACK_COLOR=always)
-          path: spack-src # Where to clone Spack      # - name: Get Spack
-      
+          repository: ukri-bench/spack-packages
+          ref: 2ad26290b2eca3de4a0f1dd5511ba743407898a6  # main, 2026-11-27
+          path: bench_pkgs
+
+      # Same Spack and spack-packages versions as the ukri-bench/spack-packages
+      # CI (.github/spack/versions.env there). Keep in sync.
+      - name: Set up Spack
+        uses: spack/setup-spack@16b756799ede8b28951287f89bcd3fdb32ec1ca3 # v3.0.0
+        with:
+          spack_ref: v1.2.2
+          packages_ref: 317754c41e4e280d18ebc19db89a6115aea6cdb2
+          color: true
+          spack_path: spack-src
+
       - name: Check number of CPUs
         run: |
           echo "Number of CPUs:"
           nproc
-          
+
+      # ukri-bench/spack-configs, pinned (main, 2026-11-27)
       - name: Get Spack config (CPU)
         run: |
-          wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/refs/heads/main/configs/gh-actions/spack.yml
+          wget -O spack.yml https://raw.githubusercontent.com/ukri-bench/spack-configs/f6ed9e058a2cae4880c3f39a0c9f9c5337b89ff1/configs/gh-actions/spack.yml
 
       - name: Add ukri-bench Spack repository and create environment
         shell: spack-bash {0}
         run: |
-          spack repo add --name bench_pkgs https://github.com/ukri-bench/spack-packages.git bench_pkgs
+          spack repo add "${GITHUB_WORKSPACE}/bench_pkgs/spack_pkgs/spack_repo/ukri_bench"
+          spack repo list
           spack env create . spack.yml
-          spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/spack-buildcache-nemo
+          # Use a mirror written only by this Spack version: the index update
+          # fails on entries from newer Spack versions (e.g. develop)
+          spack -e . mirror add --unsigned --type binary --oci-username-variable GITHUB_USER --oci-password-variable GITHUB_TOKEN local-buildcache oci://ghcr.io/ukri-bench/benchmark-nemo-buildcache
           spack -e . config get mirrors
 
-      - name: Install NEMO
+      - name: Concretize
+        id: concretize
         shell: spack-bash {0}
-        run: |
-          spack -e . install --use-buildcache=package:never,dependencies:auto --add nemo +mpi config=ORCA2_ICE_PISCES %gcc
-
-      - name: Push packages and update index
-        shell: spack-bash {0}
-        env:
+        env: &cache-credentials
           GITHUB_USER: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: spack -e . buildcache push --base-image ubuntu:24.04 --update-index local-buildcache
-        if: ${{ !cancelled() }}
+        run: |
+          spack -e . add ${SPEC}
+          spack -e . concretize -j "$(nproc)"
+
+      # Autopush uploads each package built from source right after it is
+      # installed; packages installed from the cache are not pushed again
+      - name: Enable build cache autopush
+        if: env.CAN_PUSH == 'true'
+        shell: spack-bash {0}
+        run: spack -e . mirror set --autopush local-buildcache
+
+      # No --fail-fast: if one dependency fails, independent ones are still
+      # built (and pushed)
+      - name: Install dependencies
+        shell: spack-bash {0}
+        env: *cache-credentials
+        run: |
+          spack -e . install -j "$(nproc)" --only dependencies --use-buildcache auto
+          # --only dependencies skips build-only dependencies of NEMO itself.
+          # Install them here too, so they are built (and pushed) in this step
+          # and the NEMO build below can take every dependency from the cache.
+          build_deps=$(spack -e . python -c 'import spack.environment as ev; print(" ".join("/" + d.dag_hash() for r in ev.active_environment().concrete_roots() for d in r.dependencies(deptype="build")))')
+          if [ -n "${build_deps}" ]; then
+            # shellcheck disable=SC2086
+            spack -e . install -j "$(nproc)" --no-add --use-buildcache auto ${build_deps}
+          fi
+
+      - name: Build NEMO
+        shell: spack-bash {0}
+        env: *cache-credentials
+        run: |
+          # NEMO itself is not cached
+          spack -e . mirror set --no-autopush local-buildcache
+          spack -e . install -j "$(nproc)" --use-buildcache package:never,dependencies:only --fail-fast
+          spack -e . find -lv
 
       - name: Cache ORCA2_ICE_v4.2.0
         id: cache-orca
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ORCA2_ICE_v4.2.0
           key: orca2-ice-v4.2.0
@@ -97,8 +162,19 @@ jobs:
           cd ./NEMO_RUNDIR
           mpirun --use-hwthread-cpus -np 4 ./nemo
 
+      # Run even if NEMO failed, which is when the logs are most useful
       - name: Get error logs for nemo
+        if: ${{ !cancelled() && hashFiles('NEMO_RUNDIR/ocean.output') != '' }}
         run: cat ./NEMO_RUNDIR/ocean.output
 
       - name: Get timings for nemo
+        if: ${{ !cancelled() && hashFiles('NEMO_RUNDIR/timing.output') != '' }}
         run: cat ./NEMO_RUNDIR/timing.output
+
+      # Runs even after a failure or cancellation, so dependencies pushed so far
+      # are listed in the index
+      - name: Update build cache index
+        if: always() && env.CAN_PUSH == 'true' && steps.concretize.outcome == 'success'
+        shell: spack-bash {0}
+        env: *cache-credentials
+        run: spack -e . buildcache update-index local-buildcache
