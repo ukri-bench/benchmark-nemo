@@ -10,7 +10,7 @@ Run the steps in order, from the repository root. Steps 2–4 normally need to b
 
 - `SYSTEM_NAME`, which selects the platform file `etc/<SYSTEM_NAME>.sh`. Platform files exist for `archer2` and `isambard-ai`.
 - The compiler (`COMPILER`, `COMPVER`, and `COMPVERP`, the version without dots, used in environment names).
-- The MPI implementation (`MPIIMPL`) and the versions of HDF5, netCDF, Boost, XIOS and NEMO.
+- The MPI implementation (`MPIIMPL`) and the versions of HDF5, netCDF, Boost, XIOS, PSyclone and NEMO.
 
 The platform file `etc/<SYSTEM_NAME>.sh` sets:
 
@@ -43,9 +43,7 @@ The script takes no arguments.
 
 ## Step 4: Install PSyclone
 
-`build_psyclone.sh` clones PSyclone into `$PSYDIR`, checks out the `nemo_v5` branch and installs it with `pip` into the Spack environment's Python.
-
-> **Note:** the `nemo_v5` branch no longer exists in the PSyclone repository. The checkout fails and the script then installs PSyclone's default branch instead.
+`build_psyclone.sh` clones PSyclone into `$PSYDIR`, checks out the commit set by `PSYREV` in `etc/set_versions.sh`, and installs it with `pip` into the Spack environment's Python. The default is a PSyclone `master` commit from 26 June 2025.
 
 ## Step 5: Build NEMO
 
